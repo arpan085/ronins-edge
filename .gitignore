@@ -1,0 +1,4 @@
+game/.godot/
+__pycache__/
+*.blend1
+*.log

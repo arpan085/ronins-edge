@@ -1,0 +1,1134 @@
+{
+ "kaito": {
+  "bones": 38,
+  "clips": {
+   "Walk_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0003,
+     1.193
+    ],
+    "speed_mps": 1.193,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Walk_B": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     -0.0,
+     -0.7789
+    ],
+    "speed_mps": 0.7789,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Walk_L": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     -0.678,
+     -0.0018
+    ],
+    "speed_mps": 0.678,
+    "planted_frames": 9,
+    "cycle_frames": 24
+   },
+   "Walk_R": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.678,
+     0.0067
+    ],
+    "speed_mps": 0.6781,
+    "planted_frames": 9,
+    "cycle_frames": 24
+   },
+   "Jog_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0,
+     1.6823
+    ],
+    "speed_mps": 1.6823,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Jog_B": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0006,
+     -1.0555
+    ],
+    "speed_mps": 1.0555,
+    "planted_frames": 9,
+    "cycle_frames": 24
+   },
+   "Jog_L": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     -0.8776,
+     -0.0019
+    ],
+    "speed_mps": 0.8776,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Jog_R": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.8784,
+     0.0081
+    ],
+    "speed_mps": 0.8784,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Sprint_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0,
+     2.0866
+    ],
+    "speed_mps": 2.0866,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Idle_Loco": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0,
+     0.0
+    ],
+    "speed_mps": 0.0,
+    "planted_frames": 25,
+    "cycle_frames": 24
+   },
+   "Idle_A": {
+    "frames": 188,
+    "fps": 30,
+    "loop": true
+   },
+   "Idle_B": {
+    "frames": 150,
+    "fps": 30,
+    "loop": true
+   },
+   "Idle_C": {
+    "frames": 150,
+    "fps": 30,
+    "loop": true
+   },
+   "Idle_Combat": {
+    "frames": 188,
+    "fps": 30,
+    "loop": true
+   },
+   "Breathe_Add": {
+    "frames": 96,
+    "fps": 30,
+    "loop": true
+   },
+   "Start_Run": {
+    "frames": 20,
+    "fps": 30,
+    "loop": false
+   },
+   "Stop_Run": {
+    "frames": 24,
+    "fps": 30,
+    "loop": false
+   },
+   "Stop_Walk": {
+    "frames": 26,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_R45": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_L45": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_R90": {
+    "frames": 25,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_L90": {
+    "frames": 25,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_R180": {
+    "frames": 37,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_L180": {
+    "frames": 37,
+    "fps": 30,
+    "loop": false
+   },
+   "Dodge_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.46,
+     0
+    ]
+   },
+   "Dodge_B": {
+    "frames": 24,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.44,
+     0
+    ]
+   },
+   "Dodge_L": {
+    "frames": 24,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     -0.44,
+     0,
+     0
+    ]
+   },
+   "Dodge_R": {
+    "frames": 24,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0.44,
+     0,
+     0
+    ]
+   },
+   "Roll_F": {
+    "frames": 30,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     1.25,
+     0
+    ]
+   },
+   "Jump_Up": {
+    "frames": 14,
+    "fps": 30,
+    "loop": false
+   },
+   "Jump_Air": {
+    "frames": 32,
+    "fps": 30,
+    "loop": true
+   },
+   "Jump_Land": {
+    "frames": 20,
+    "fps": 30,
+    "loop": false
+   },
+   "Light1": {
+    "frames": 22,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.3,
+     0
+    ]
+   },
+   "Light2": {
+    "frames": 20,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.2,
+     0
+    ]
+   },
+   "Light3": {
+    "frames": 32,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.46,
+     0
+    ]
+   },
+   "Heavy": {
+    "frames": 46,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.5,
+     0
+    ]
+   },
+   "Deflect": {
+    "frames": 20,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.05,
+     0
+    ]
+   },
+   "Deathblow": {
+    "frames": 64,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.72,
+     0
+    ]
+   },
+   "Block_In": {
+    "frames": 8,
+    "fps": 30,
+    "loop": false
+   },
+   "Block_Idle": {
+    "frames": 60,
+    "fps": 30,
+    "loop": true
+   },
+   "Block_Impact": {
+    "frames": 14,
+    "fps": 30,
+    "loop": false
+   },
+   "Sheathe": {
+    "frames": 26,
+    "fps": 30,
+    "loop": false
+   },
+   "Unsheathe": {
+    "frames": 22,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_F": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_B": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_L": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_R": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "HitHeavy_F": {
+    "frames": 30,
+    "fps": 30,
+    "loop": false
+   },
+   "HitHeavy_B": {
+    "frames": 30,
+    "fps": 30,
+    "loop": false
+   },
+   "Stagger_A": {
+    "frames": 46,
+    "fps": 30,
+    "loop": false
+   },
+   "GetUp_A": {
+    "frames": 52,
+    "fps": 30,
+    "loop": false
+   },
+   "Death_A": {
+    "frames": 66,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.36,
+     0
+    ]
+   },
+   "Stagger_B": {
+    "frames": 52,
+    "fps": 30,
+    "loop": false
+   },
+   "GetUp_B": {
+    "frames": 40,
+    "fps": 30,
+    "loop": false
+   },
+   "Death_B": {
+    "frames": 58,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.64,
+     0
+    ]
+   },
+   "Knockdown_B": {
+    "frames": 54,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.66,
+     0
+    ]
+   },
+   "Knockdown_F": {
+    "frames": 54,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.66,
+     0
+    ]
+   },
+   "Cine_Arrive": {
+    "frames": 72,
+    "fps": 30,
+    "loop": false
+   },
+   "Cine_Discover": {
+    "frames": 84,
+    "fps": 30,
+    "loop": false
+   },
+   "Cine_Bow": {
+    "frames": 76,
+    "fps": 30,
+    "loop": false
+   }
+  },
+  "tris": 3596
+ },
+ "ashigaru": {
+  "bones": 38,
+  "clips": {
+   "Walk_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0003,
+     1.193
+    ],
+    "speed_mps": 1.193,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Walk_B": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     -0.0,
+     -0.7789
+    ],
+    "speed_mps": 0.7789,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Jog_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0,
+     1.6822
+    ],
+    "speed_mps": 1.6822,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Jog_B": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0006,
+     -1.0555
+    ],
+    "speed_mps": 1.0555,
+    "planted_frames": 9,
+    "cycle_frames": 24
+   },
+   "Idle_Loco": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0,
+     0.0
+    ],
+    "speed_mps": 0.0,
+    "planted_frames": 25,
+    "cycle_frames": 24
+   },
+   "Idle_A": {
+    "frames": 204,
+    "fps": 30,
+    "loop": true
+   },
+   "Idle_B": {
+    "frames": 163,
+    "fps": 30,
+    "loop": true
+   },
+   "Breathe_Add": {
+    "frames": 96,
+    "fps": 30,
+    "loop": true
+   },
+   "Turn_R90": {
+    "frames": 28,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_L90": {
+    "frames": 28,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_R180": {
+    "frames": 40,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_L180": {
+    "frames": 40,
+    "fps": 30,
+    "loop": false
+   },
+   "Alert": {
+    "frames": 33,
+    "fps": 30,
+    "loop": false
+   },
+   "Investigate": {
+    "frames": 133,
+    "fps": 30,
+    "loop": true
+   },
+   "Hit_F": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_B": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_L": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_R": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "HitHeavy_F": {
+    "frames": 30,
+    "fps": 30,
+    "loop": false
+   },
+   "Stagger_A": {
+    "frames": 46,
+    "fps": 30,
+    "loop": false
+   },
+   "Stagger_B": {
+    "frames": 52,
+    "fps": 30,
+    "loop": false
+   },
+   "Knockdown_B": {
+    "frames": 54,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.66,
+     0
+    ]
+   },
+   "GetUp_A": {
+    "frames": 52,
+    "fps": 30,
+    "loop": false
+   },
+   "Death_A": {
+    "frames": 66,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.36,
+     0
+    ]
+   },
+   "Death_B": {
+    "frames": 58,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.64,
+     0
+    ]
+   },
+   "Attack": {
+    "frames": 40,
+    "fps": 30,
+    "loop": false
+   },
+   "Sweep": {
+    "frames": 42,
+    "fps": 30,
+    "loop": false
+   },
+   "Block": {
+    "frames": 20,
+    "fps": 30,
+    "loop": false
+   },
+   "Shuffle": {
+    "frames": 40,
+    "fps": 30,
+    "loop": true
+   }
+  },
+  "tris": 3372
+ },
+ "archer": {
+  "bones": 38,
+  "clips": {
+   "Walk_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0003,
+     1.193
+    ],
+    "speed_mps": 1.193,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Walk_B": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     -0.0,
+     -0.7789
+    ],
+    "speed_mps": 0.7789,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Walk_L": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     -0.678,
+     -0.0018
+    ],
+    "speed_mps": 0.678,
+    "planted_frames": 9,
+    "cycle_frames": 24
+   },
+   "Walk_R": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.678,
+     0.0067
+    ],
+    "speed_mps": 0.6781,
+    "planted_frames": 9,
+    "cycle_frames": 24
+   },
+   "Jog_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0,
+     1.6823
+    ],
+    "speed_mps": 1.6823,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Jog_B": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0006,
+     -1.0555
+    ],
+    "speed_mps": 1.0555,
+    "planted_frames": 9,
+    "cycle_frames": 24
+   },
+   "Jog_L": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     -0.8776,
+     -0.0019
+    ],
+    "speed_mps": 0.8776,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Jog_R": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.8784,
+     0.0081
+    ],
+    "speed_mps": 0.8784,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Idle_Loco": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0,
+     0.0
+    ],
+    "speed_mps": 0.0,
+    "planted_frames": 25,
+    "cycle_frames": 24
+   },
+   "Idle_A": {
+    "frames": 162,
+    "fps": 30,
+    "loop": true
+   },
+   "Idle_B": {
+    "frames": 129,
+    "fps": 30,
+    "loop": true
+   },
+   "Breathe_Add": {
+    "frames": 96,
+    "fps": 30,
+    "loop": true
+   },
+   "Turn_R90": {
+    "frames": 22,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_L90": {
+    "frames": 22,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_R180": {
+    "frames": 32,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_L180": {
+    "frames": 32,
+    "fps": 30,
+    "loop": false
+   },
+   "Alert": {
+    "frames": 26,
+    "fps": 30,
+    "loop": false
+   },
+   "Investigate": {
+    "frames": 105,
+    "fps": 30,
+    "loop": true
+   },
+   "Hit_F": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_B": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_L": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_R": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "HitHeavy_F": {
+    "frames": 30,
+    "fps": 30,
+    "loop": false
+   },
+   "Stagger_A": {
+    "frames": 46,
+    "fps": 30,
+    "loop": false
+   },
+   "Stagger_B": {
+    "frames": 52,
+    "fps": 30,
+    "loop": false
+   },
+   "Knockdown_B": {
+    "frames": 54,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.66,
+     0
+    ]
+   },
+   "GetUp_A": {
+    "frames": 52,
+    "fps": 30,
+    "loop": false
+   },
+   "Death_A": {
+    "frames": 66,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.36,
+     0
+    ]
+   },
+   "Death_B": {
+    "frames": 58,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.64,
+     0
+    ]
+   },
+   "Nock": {
+    "frames": 22,
+    "fps": 30,
+    "loop": false
+   },
+   "AimIn": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Shoot": {
+    "frames": 24,
+    "fps": 30,
+    "loop": false
+   },
+   "BackStep": {
+    "frames": 22,
+    "fps": 30,
+    "loop": false
+   },
+   "Flinch": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "HoldDraw": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true
+   }
+  },
+  "tris": 3920
+ },
+ "captain": {
+  "bones": 38,
+  "clips": {
+   "Walk_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0003,
+     1.193
+    ],
+    "speed_mps": 1.193,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Walk_B": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     -0.0,
+     -0.7789
+    ],
+    "speed_mps": 0.7789,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Jog_F": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0,
+     1.6823
+    ],
+    "speed_mps": 1.6823,
+    "planted_frames": 10,
+    "cycle_frames": 24
+   },
+   "Jog_B": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0006,
+     -1.0555
+    ],
+    "speed_mps": 1.0555,
+    "planted_frames": 9,
+    "cycle_frames": 24
+   },
+   "Idle_Loco": {
+    "frames": 24,
+    "fps": 30,
+    "loop": true,
+    "foot_vel": [
+     0.0,
+     0.0
+    ],
+    "speed_mps": 0.0,
+    "planted_frames": 25,
+    "cycle_frames": 24
+   },
+   "Idle_A": {
+    "frames": 234,
+    "fps": 30,
+    "loop": true
+   },
+   "Idle_B": {
+    "frames": 187,
+    "fps": 30,
+    "loop": true
+   },
+   "Breathe_Add": {
+    "frames": 96,
+    "fps": 30,
+    "loop": true
+   },
+   "Turn_R90": {
+    "frames": 32,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_L90": {
+    "frames": 32,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_R180": {
+    "frames": 47,
+    "fps": 30,
+    "loop": false
+   },
+   "Turn_L180": {
+    "frames": 47,
+    "fps": 30,
+    "loop": false
+   },
+   "Alert": {
+    "frames": 38,
+    "fps": 30,
+    "loop": false
+   },
+   "Investigate": {
+    "frames": 153,
+    "fps": 30,
+    "loop": true
+   },
+   "Hit_F": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_B": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_L": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "Hit_R": {
+    "frames": 18,
+    "fps": 30,
+    "loop": false
+   },
+   "HitHeavy_F": {
+    "frames": 30,
+    "fps": 30,
+    "loop": false
+   },
+   "Stagger_A": {
+    "frames": 46,
+    "fps": 30,
+    "loop": false
+   },
+   "Stagger_B": {
+    "frames": 52,
+    "fps": 30,
+    "loop": false
+   },
+   "Knockdown_B": {
+    "frames": 54,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.66,
+     0
+    ]
+   },
+   "GetUp_A": {
+    "frames": 52,
+    "fps": 30,
+    "loop": false
+   },
+   "Death_A": {
+    "frames": 66,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     0.36,
+     0
+    ]
+   },
+   "Death_B": {
+    "frames": 58,
+    "fps": 30,
+    "loop": false,
+    "root_motion": [
+     0,
+     -0.64,
+     0
+    ]
+   },
+   "Idle_Boss": {
+    "frames": 210,
+    "fps": 30,
+    "loop": true
+   },
+   "Intimidate": {
+    "frames": 48,
+    "fps": 30,
+    "loop": false
+   },
+   "EnterCombat": {
+    "frames": 36,
+    "fps": 30,
+    "loop": false
+   },
+   "Attack1": {
+    "frames": 58,
+    "fps": 30,
+    "loop": false
+   },
+   "Attack2": {
+    "frames": 50,
+    "fps": 30,
+    "loop": false
+   },
+   "Attack3": {
+    "frames": 66,
+    "fps": 30,
+    "loop": false
+   },
+   "PhaseTransition": {
+    "frames": 92,
+    "fps": 30,
+    "loop": false
+   },
+   "Defeat": {
+    "frames": 104,
+    "fps": 30,
+    "loop": false
+   }
+  },
+  "tris": 3940
+ }
+}
