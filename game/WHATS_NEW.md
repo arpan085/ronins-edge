@@ -1806,7 +1806,6 @@ all twelve). Learning saves the game.
   not at a clear noon. `tests/EnemyLab` can show it: `--cold 1 --puff 0.6`
   (breathe out, capture 0.6 s later) and `--mood cold` (winter light).
 
-
 ---
 
 # v0.22 — Feet on the ground
@@ -1852,3 +1851,92 @@ all twelve). Learning saves the game.
   sprint; both feet planted across a 20 degree slope; master limiter and
   music ducking). `tests/GroundProbe.tscn -- --slope 20` prints the sole gaps
   with the IK on and off. `tests/EnemyLab --nofix 1` shows the old sunk pose.
+
+---
+
+# v0.23 — The Night the Castle Fell
+
+## A cinematic opening
+- A new game now opens on a 68-second prologue cut to its own score:
+  the province and the year over black; Asano castle burning at night, seen
+  from low in the courtyard while the camera tilts up the keep; soldiers with
+  torches marching out of the gate; Kuroda standing in front of the burning
+  keep; Hanamura village on fire; a sword flash and "Eleven winters later";
+  then dawn, and Kaito gallops up the forest road on his own horse (the real
+  horse and rider in the game world, not a video), past a camera on the road,
+  to the shrine hill and the title. He reins in at the Sakura Shrine and
+  dismounts, and the camera cranes down behind him into the normal follow
+  camera without a cut.
+- Six narration cards tell the story (Lord Asano's death, Kuroda's betrayal,
+  the raids, who Kaito is and why he returns).
+- Hold Esc (or the Skip button) to skip: the night is cleared and Kaito is
+  placed where the ride ends. Loading a saved game never plays it.
+- The keep fires sit outside the walls (they were inside the model before and
+  could not be seen), with flames, smoke, embers and flickering light.
+- Fixed: the opening text cards ("Kiyomizu Province, 1573" and "Eleven winters
+  later") were drawn under the black fade and could not be seen.
+- Chapter cards now land with a taiko stroke and a temple bell.
+
+## Kaito's own face
+- Kaito no longer shares the soldiers' head. `tools/kaito_head_v23.py` builds
+  `assets/char/Kaito.glb` from the base character (the soldiers keep theirs):
+  - a lean face: hollow cheeks under wide, projected cheekbones, a
+    medium-width jaw and a defined chin;
+  - "hunter" eyes: almond-shaped, hooded by a lower, heavier brow ridge, with
+    a slight lift at the outer corners;
+  - thick, low, nearly straight eyebrows;
+  - long, dark-brown wavy hair (about 450 hair cards with their own strand
+    texture) parted near the middle, lying close over the crown and falling
+    over the ears to the jaw and the nape, with a few locks across the forehead;
+  - stubble, and a thin old scar across the right cheekbone.
+- The topknot and headband are gone; the samurai outfit is unchanged.
+- The hair is shaded with a low specular so it stays dark brown at grazing
+  angles instead of shining tan.
+
+## The horse
+- The tail moves on its own: it streams up and back at the gallop and bounces
+  with the stride, swings out on turns, lags like a whip when the horse sets
+  off or reins in, and swishes at flies when it stands (`anim/HorseTail.gd`,
+  a chain of springs on the seven tail bones, on top of the animation).
+- Dust kicks up behind the hooves at the canter and gallop on dry ground
+  (none in the rain, on wet ground, in water or on rock).
+- After a hard run it blows: breathing builds with every second of gallop and
+  is heard once it slows down, louder and faster the longer it ran, easing off
+  as it recovers. On cold mornings, clear nights and in snow its nostrils
+  steam with every breath (`fx/HorseFX.gd`).
+- New horse breathing recordings (CC0).
+
+## Title screen
+- An animated ink-and-gold backdrop that drifts with the mouse, falling
+  petals, and a timed reveal: a rising swell, a sword flash on the title, the
+  seal and a taiko stroke, then "Press any key". Continue appears when there
+  is a save; New Game asks before it erases one.
+
+## Music
+- The prologue score (`assets/audio/music/prologue.ogg`) is built from CC0
+  recordings: a dark wind drone, shakuhachi, a war horn, a taiko performance
+  that builds through the night, impacts on the cuts, ringing steel on the
+  sword flash and the title, a temple bell and koto at the shrine.
+  Every hit is placed on its cut (the swelling impact and the late-ringing
+  steel were measured and lined up by their peaks).
+- Loudness: every zone track measures -18.6 LUFS (within 0.3 dB) and the
+  prologue is mastered to match (-18.9 LUFS, true peak -1.5 dBTP; it was
+  -16.7 LUFS and clipped at +0.3 dBTP).
+
+## Sound effects, tested
+- `tools/audio_audit_v23.py` measures every sound in the game (169 effects,
+  15 music tracks, 8 ambience loops): loudness, true peak, DC offset, silent
+  lead-in, loop seams and how far the variants of one sound sit apart.
+- `tools/sfx_fix_v23.py` fixed the 70 effects it flagged: DC offset removed,
+  silent lead-ins trimmed (a sound now starts on its frame), and the variants
+  of each sound levelled so no hit or step is suddenly louder than the others.
+- New sound sets: riser, boom, sword ring, big whoosh, brush stroke, temple
+  bell, war horn, horse breathing, fire whoosh, and a big fire loop.
+- All 30 new recordings are CC0 (public domain) from Freesound; each licence
+  was checked on its page when it was fetched (`tools/fetch_ids_v23.py`).
+  See CREDITS.md.
+
+## How this was checked
+- No GPU here: stills were rendered with Godot's software renderer and the
+  test suites run headless. Audio was judged by measurement (loudness, peaks,
+  onsets), not by ear. Frame rate on a real GPU was not measured.

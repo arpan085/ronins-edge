@@ -284,6 +284,9 @@ func _physics_process(delta: float) -> void:
 		return
 	if _hit_flash > 0.0:
 		_hit_flash -= delta
+	if puppet:
+		_puppet_tick(delta)
+		return
 	if is_dead:
 		death_timer += delta
 		velocity.x = 0.0; velocity.z = 0.0
@@ -1125,6 +1128,79 @@ func posture_ratio() -> float:
 
 func is_alive() -> bool:
 	return not is_dead
+
+# ------------------------------------------------------------------ v0.23 cinematic puppet
+## Prologue actors: no perception and no AI. They walk to puppet_goal at
+## puppet_speed (0 = stand), then turn to puppet_face (radians, INF = keep).
+var puppet := false
+var puppet_goal := Vector3.INF
+var puppet_speed := 0.0
+var puppet_face := INF
+var _torch: Node3D = null
+
+func _puppet_tick(delta: float) -> void:
+	var to := Vector3.ZERO
+	if puppet_goal != Vector3.INF:
+		to = puppet_goal - global_position
+		to.y = 0.0
+	if puppet_speed > 0.01 and to.length() > 0.4:
+		var dir := to.normalized()
+		velocity.x = dir.x * puppet_speed
+		velocity.z = dir.z * puppet_speed
+		_want_yaw = atan2(dir.x, dir.z)
+	else:
+		velocity.x = 0.0
+		velocity.z = 0.0
+		if puppet_face != INF: _want_yaw = puppet_face
+	rotation.y = lerp_angle(rotation.y, _want_yaw, clampf(delta * 5.0, 0.0, 1.0))
+	_apply_gravity(delta)
+	move_and_slide()
+	_anim_tick(delta, true)
+
+## A burning torch in the left hand (prologue night march).
+func give_torch() -> void:
+	if _torch != null or skeleton == null: return
+	var bi := skeleton.find_bone("hand_l")
+	if bi < 0: return
+	var ba := BoneAttachment3D.new()
+	ba.bone_name = "hand_l"
+	skeleton.add_child(ba)
+	var holder := Node3D.new()
+	ba.add_child(holder)
+	# the hand bone points along the fingers: stand the torch up out of the fist
+	holder.rotation = Vector3(0.0, 0.0, deg_to_rad(90.0))
+	var stick := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.022
+	cm.bottom_radius = 0.026
+	cm.height = 0.62
+	cm.radial_segments = 6
+	stick.mesh = cm
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = Color(0.28, 0.18, 0.1)
+	sm.roughness = 0.9
+	stick.material_override = sm
+	stick.position = Vector3(0, 0.16, 0)
+	holder.add_child(stick)
+	var head := MeshInstance3D.new()
+	var hm := CylinderMesh.new()
+	hm.top_radius = 0.045
+	hm.bottom_radius = 0.035
+	hm.height = 0.12
+	hm.radial_segments = 6
+	head.mesh = hm
+	var hmat := StandardMaterial3D.new()
+	hmat.albedo_color = Color(0.08, 0.06, 0.05)
+	head.material_override = hmat
+	head.position = Vector3(0, 0.5, 0)
+	holder.add_child(head)
+	var f := FireFX.new()
+	f.size = 0.2
+	f.smoke = false
+	f.light_energy = 0.9
+	f.position = Vector3(0, 0.53, 0)
+	holder.add_child(f)
+	_torch = ba
 
 func display_name() -> String:
 	# v0.14: the story's villain, not just "Captain"

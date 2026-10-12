@@ -6,7 +6,7 @@ hand-built valley.
 
 ## Play it
 
-The playable build is **`RoninsEdge_v22_play.zip`** (about 137 MB), attached
+The playable build is **`RoninsEdge_v23_play.zip`** (about 143 MB), attached
 to the project's Notion page (*Ronin's Edge — Samurai Game*). In Godot 4.3:
 Project Manager, **Import**, pick the zip and choose an empty folder (or unzip
 it and import `RoninsEdge/project.godot`). `README.txt` inside has the
@@ -32,10 +32,13 @@ Run headless from the project folder:
 godot --headless --path . res://tests/TestRunner.tscn   # unit checks
 godot --headless --path . res://tests/AdvQA.tscn        # stealth and combat
 godot --headless --path . res://tests/PlayerQA.tscn     # player moves
+godot --headless --path . res://tests/HorseQA.tscn      # the horse's tail, dust, breath (v0.23)
+godot --headless --path . res://tests/PrologueQA.tscn -- log   # the opening cinematic (v0.23)
 godot --headless --path . -s tools/check_scripts.gd     # every script compiles
 ```
 
-v0.22: 75 + 86 + 129 checks pass and all 101 scripts compile. Every build so
+v0.23: unit tests 75 / 0, stealth and combat 86 / 0, player 129 / 0, horse 14 / 0,
+v0.23 checks 21 / 0, the full prologue run 8 / 0, and all 109 scripts compile. Every build so
 far has been checked with software rendering and headless runs only, not
 played on a GPU.
 

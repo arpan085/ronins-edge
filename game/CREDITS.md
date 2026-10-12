@@ -189,6 +189,56 @@ trimmed, split into single calls, levelled and converted by `tools/build_audio_v
 The assassination, Mikiri and gourd sounds reuse existing sets (deathblow, clash, heal).
 The spirit fox reuses the v0.15 red fox model (CC0, see *Animals*) with a new shader.
 
+## Kaito's head (v0.23)
+
+| Asset | Source | Author | Licence |
+|---|---|---|---|
+| Kaito's face, hair cards, strand texture, painted brows and scar (`assets/char/Kaito.glb`) | the Universal Base Characters head above, re-sculpted with generated hair by `tools/kaito_head_v23.py` | Quaternius (base), own work | CC0 1.0 |
+
+## Prologue score and sound effects (v0.23)
+
+**Freesound** (freesound.org), CC0 1.0 uploads (each licence checked on its page by
+`tools/fetch_ids_v23.py`), cut, levelled and mixed by `tools/build_audio_v23.py` into the
+prologue score (`assets/audio/music/prologue.ogg`) and the sets below.
+
+| id | uploader | title | used for |
+|---|---|---|---|
+| [397091](https://freesound.org/s/397091/) | janbezouska | Soft Tonal Wind_01 | score (drone) |
+| [160895](https://freesound.org/s/160895/) | (deleted user) | Shakuhachi-breathy.WAV | score |
+| [157759](https://freesound.org/s/157759/) | (deleted user) | Shakuhachi with Echo | score |
+| [588270](https://freesound.org/s/588270/) | synthtodd | Shakuhachi for SBR.wav | score |
+| [499726](https://freesound.org/s/499726/) | PhonosUPF | shakuhachi blow | score |
+| [479998](https://freesound.org/s/479998/) | craigsmith | R12-46-Blowing Note on Cow Horn.wav | score (war horn), conch |
+| [559529](https://freesound.org/s/559529/) | Rizzard | Cinematic Boom | score, boom |
+| [430977](https://freesound.org/s/430977/) | AudioPapkin | Big impact.wav | score |
+| [177242](https://freesound.org/s/177242/) | (deleted user) | Cinematic Impact | score |
+| [259300](https://freesound.org/s/259300/) | unfa | Huge Explosion | score (title), boom |
+| [459561](https://freesound.org/s/459561/) | Infinita08 | Taiko Drum Sequence for Looping (The Sacrifice) | score |
+| [491277](https://freesound.org/s/491277/) | Xinematix | Taiko Drumloop 001 (120) | score |
+| [491279](https://freesound.org/s/491279/) | Xinematix | Taiko Drumloop 003 [With Ending Variation] (120) | score |
+| [480656](https://freesound.org/s/480656/) | craigsmith | R16-15-Army Marching.wav | score (march) |
+| [715353](https://freesound.org/s/715353/) | AudioPapkin | Riser Hit sfx 062 | score |
+| [649445](https://freesound.org/s/649445/) | AudioPapkin | Cinematic Woosh SFX-015.wav | score, riser |
+| [648534](https://freesound.org/s/648534/) | AudioPapkin | Transition Hit SFX -001.wav | riser |
+| [441666](https://freesound.org/s/441666/) | ethanchase7744 | sword slash.wav | score |
+| [641389](https://freesound.org/s/641389/) | WhiteFire43 | Big Metal Shine 01.m4a | score, sword_ring |
+| [320521](https://freesound.org/s/320521/) | (deleted user) | Unsheathed blade | score, sword_ring |
+| [223958](https://freesound.org/s/223958/) | (deleted user) | Koto C4.wav | score |
+| [223956](https://freesound.org/s/223956/) | (deleted user) | Koto G4.wav | score |
+| [131348](https://freesound.org/s/131348/) | nahmandub | Bell at Daitokuji temple,kyoto.wav | score, temple_bell (chapter cards) |
+| [171255](https://freesound.org/s/171255/) | qubodup | Sliding Trailer Woosh | whoosh_big |
+| [260554](https://freesound.org/s/260554/) | LookIMadeAThing | Basic Fire whoosh | fire_whoosh |
+| [260555](https://freesound.org/s/260555/) | LookIMadeAThing | Basic Fire Whoosh 2 | fire_whoosh |
+| [428338](https://freesound.org/s/428338/) | zembacraftworks | Underlining Stroke on Paper | brush |
+| [275388](https://freesound.org/s/275388/) | metaepitome | Horse Breathing.wav | horse_breath |
+| [619069](https://freesound.org/s/619069/) | mrrap4food | Horse breathing.mp3 | horse_breath |
+| [387924](https://freesound.org/s/387924/) | Aegersum | Fire -massive no cracking.wav | fire_big (the prologue fires) |
+
+The title-screen backdrop shader, the fire, dust and steam effects and the tail
+springs are own work (CC0 1.0). The existing sound effects were cleaned up in
+v0.23 by `tools/sfx_fix_v23.py` (DC offset, silent lead-ins, variant levels);
+their sources are unchanged.
+
 CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/  
 SIL OFL 1.1: https://openfontlicense.org  
 CC-BY 4.0: https://creativecommons.org/licenses/by/4.0/

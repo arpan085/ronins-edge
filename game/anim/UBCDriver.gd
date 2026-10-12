@@ -891,7 +891,6 @@ class UBCRig extends AnimRig:
 	func root_motion() -> Vector3:
 		return Vector3.ZERO
 
-
 ## v0.22: a soldier's step is heard when his foot lands (near soldiers only)
 func _on_footfall(_side: String, pos: Vector3) -> void:
 	if lod_level > 0 or _host == null or _step_speed < 0.7: return

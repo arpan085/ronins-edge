@@ -12,7 +12,9 @@ extends Node3D
 ##
 ## Coordinates: the rig faces +Z like the rest of the game.
 
-const CHAR_PATH := "res://assets/char/Ronin.glb"
+## v0.23 Kaito's own head: lean face, hunter eyes, thick brows, long wavy hair
+## (tools/kaito_head_v23.py builds Kaito.glb from Ronin.glb; soldiers keep Ronin.glb)
+const CHAR_PATH := "res://assets/char/Kaito.glb"
 const ANIM_PATH := "res://assets/anim/ronin_anims.res"
 const WEAPON_PATH := "res://assets/weapons/weapons.glb"
 
@@ -54,6 +56,7 @@ func build() -> bool:
 	model = ps.instantiate()
 	model.name = "Model"
 	CharDress.dress(model)
+	KaitoLook.apply(model)
 	add_child(model)
 	skeleton = _find_skeleton(model)
 	if skeleton == null:

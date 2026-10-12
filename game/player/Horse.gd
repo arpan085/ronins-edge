@@ -70,6 +70,11 @@ var winded := false
 var _st_idle := 0.0
 var _blow_t := 0.0
 
+## v0.23 the tail on springs (anim/HorseTail.gd); dust, breathing and steaming
+## nostrils (fx/HorseFX.gd)
+var tail: HorseTail
+var fx: HorseFX
+
 func _ready() -> void:
 	collision_layer = 2
 	collision_mask = 1 | 8   # world + map bounds
@@ -101,6 +106,14 @@ func _build() -> void:
 		_seat_local = skel.get_bone_global_rest(_seat_bone).affine_inverse() * SEAT_POINT
 	_build_saddle()
 	_build_bridle()
+	tail = HorseTail.new()
+	tail.name = "HorseTail"
+	if tail.setup(skel):
+		tail.horse = self
+		skel.add_child(tail)
+	else:
+		tail = null
+	fx = HorseFX.attach(self, skel)
 	# body: a standing capsule for the floor contact and a lying one for the barrel
 	var legs := CollisionShape3D.new()
 	var c1 := CapsuleShape3D.new()
@@ -565,7 +578,69 @@ func _anim_for_speed() -> void:
 		_play("Gallop", 0.25)
 		anim.speed_scale = clampf(s / GALLOP_NAT, 1.15, 2.35)
 
+# ---------------------------------------------------------------- v0.23 autopilot
+## Cinematic autopilot (the prologue ride): follow auto_path at auto_speed with
+## pure-pursuit steering, then brake smoothly to a stop on its last point.
+var auto_path := PackedVector3Array()
+var auto_speed := GALLOP
+var auto_done := false
+var _auto_i := 0
+
+func start_auto(path: PackedVector3Array, speed: float) -> void:
+	auto_path = path
+	auto_speed = speed
+	auto_done = false
+	_auto_i = 0
+
+func stop_auto() -> void:
+	auto_path = PackedVector3Array()
+
+func auto_active() -> bool:
+	return not auto_path.is_empty()
+
+func _autopilot(delta: float) -> void:
+	var n := auto_path.size()
+	var here := global_position
+	# advance the segment index while the horse is past the segment's end
+	while _auto_i < n - 2:
+		var a := auto_path[_auto_i + 1]
+		var b := auto_path[_auto_i + 2]
+		var seg := Vector2(b.x - a.x, b.z - a.z)
+		if seg.dot(Vector2(here.x - a.x, here.z - a.z)) > 0.0 or Vector2(a.x - here.x, a.z - here.z).length() < 2.0:
+			_auto_i += 1
+		else:
+			break
+	# remaining path length (for braking) and a look-ahead target
+	var nxt := auto_path[mini(_auto_i + 1, n - 1)]
+	var rem := Vector2(nxt.x - here.x, nxt.z - here.z).length()
+	for i in range(_auto_i + 1, n - 1):
+		rem += Vector2(auto_path[i + 1].x - auto_path[i].x, auto_path[i + 1].z - auto_path[i].z).length()
+	var look := clampf(absf(_speed) * 0.9, 4.0, 11.0)
+	var tgt := nxt
+	var left := look - Vector2(nxt.x - here.x, nxt.z - here.z).length()
+	var j := _auto_i + 1
+	while left > 0.0 and j < n - 1:
+		var sl := Vector2(auto_path[j + 1].x - auto_path[j].x, auto_path[j + 1].z - auto_path[j].z).length()
+		if sl >= left:
+			tgt = auto_path[j].lerp(auto_path[j + 1], left / maxf(sl, 0.001))
+			left = 0.0
+		else:
+			left -= sl
+			tgt = auto_path[j + 1]
+		j += 1
+	var to := Vector2(tgt.x - here.x, tgt.z - here.z)
+	var want_yaw := atan2(to.x, to.y) if to.length() > 0.3 else rotation.y
+	# v = sqrt(2 a d): a steady 4.5 m/s^2 rein-in onto the final point
+	var want := minf(auto_speed, sqrt(2.0 * 4.5 * maxf(rem - 0.6, 0.0)))
+	if rem < 1.2 and absf(_speed) < 0.7:
+		want = 0.0
+		auto_done = true
+	_drive(want, want_yaw, rem > 1.0, delta)
+
 func _ridden(delta: float) -> void:
+	if not auto_path.is_empty():
+		_autopilot(delta)
+		return
 	var v := Input.get_vector("move_left", "move_right", "move_forward", "move_back") + Game.touch_move
 	if v.length() > 1.0: v = v.normalized()
 	var sprint := (Input.is_action_pressed("sprint") or Game.touch_sprint) and not winded

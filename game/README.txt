@@ -1,4 +1,4 @@
-RONIN'S EDGE  v0.22  -  how to run it
+RONIN'S EDGE  v0.23  -  how to run it
 =====================================
 
 1. Install Godot 4.3 (the standard build, NOT the .NET one):
@@ -105,7 +105,10 @@ Cold (v0.21): on snowy days, clear nights and foggy dawns you can see
   everyone's breath, faster and heavier after a fight.
 Ground (v0.22): feet stand on the ground and stay planted on slopes and
   steps; footsteps land with each step.
+Prologue (v0.23): a new game opens on a 68-second cinematic, the night the
+  castle fell (hold Esc to skip). Kaito has his own face and long hair; the
+  horse's tail moves, it kicks up dust and blows hard after a gallop.
 
-What is new in this version: see WHATS_NEW.md (section "v0.22").
+What is new in this version: see WHATS_NEW.md (section "v0.23").
 Asset credits: see CREDITS.md (CC0 assets; the fonts are SIL OFL 1.1; the
 wolf model is CC-BY 4.0 by CoinCoin).

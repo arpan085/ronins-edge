@@ -34,18 +34,26 @@ const LEVEL := {
 	"deer_alarm": -5.0, "fox_bark": -7.0, "boar_grunt": -4.0, "boar_squeal": -4.0,
 	"wolf_howl": -3.0, "wolf_growl": -3.0, "wolf_yelp": -5.0, "harvest": -6.0,
 	"map_open": -9.0, "owl": -9.0,
+	# v0.23 sets: prologue, title, horse
+	"whoosh_big": -4.0, "boom": -3.0, "sword_ring": -7.0, "brush": -6.0, "temple_bell": -8.0,
+	"conch": -6.0, "horse_breath": -9.0, "fire_whoosh": -7.0, "riser": -6.0,
 }
 ## sets heard from far off: [max distance m, unit size] for the 3D voice
 const FAR := {"wolf_howl": [450.0, 45.0], "owl": [170.0, 24.0], "deer_alarm": [120.0, 12.0],
 	"fox_bark": [110.0, 11.0]}
 ## sets that must not be pitched far from the recording
-const NO_BIG_PITCH := ["horse_neigh", "horse_snort", "quest", "discover", "ui_confirm"]
+const NO_BIG_PITCH := ["horse_neigh", "horse_snort", "quest", "discover", "ui_confirm",
+	"temple_bell", "sword_ring", "conch", "horse_breath", "boom", "riser"]
 const MUSIC := {
 	"menu": "menu", "shrine": "shrine", "forest": "forest", "bamboo": "bamboo", "village": "village",
 	"farmland": "farmland", "grassland": "grassland", "lake": "lake", "ruins": "ruins",
 	"castle": "castle", "mountain": "mountain", "combat": "combat", "combat2": "combat2", "boss": "boss",
 }
 const AMB_LAYERS := ["wind", "wind_strong", "birds", "night", "rain", "stream"]
+## v0.23 per-track gain (dB) hook. tools/audio_audit_v23.py measured every zone
+## track at -18.6 LUFS integrated (all within 0.3 dB) and the prologue score is
+## mastered to the same level, so no track needs a trim today.
+const MUSIC_GAIN := {}
 
 var _sets := {}                 ## name -> Array[AudioStream]
 var _sfx3d: Array[AudioStreamPlayer3D] = []
@@ -63,6 +71,12 @@ var _current_track := ""
 var _amb_t := 0.0
 var _owl_t := 20.0
 var _ambient: AudioStreamPlayer  ## kept for old callers (the wind layer)
+## v0.23 score: a one-shot cue (the prologue) owns the music until stop_score()
+var _score := ""
+var _pending_track := ""
+var _duck: AudioEffectAmplify
+var _duck_db := 0.0
+var _duck_want := 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -141,6 +155,9 @@ func _setup_buses() -> void:
 		duck.threshold = -22.0; duck.ratio = 2.5
 		duck.attack_us = 15000.0; duck.release_ms = 420.0
 		AudioServer.add_bus_effect(mus, duck)
+		_duck = AudioEffectAmplify.new()
+		_duck.volume_db = 0.0
+		AudioServer.add_bus_effect(mus, _duck)
 	if AudioServer.get_bus_effect_count(0) == 0:
 		var glue := AudioEffectCompressor.new()
 		glue.threshold = -14.0; glue.ratio = 2.0
@@ -236,35 +253,68 @@ func _music_stream(key: String) -> AudioStream:
 	if s is AudioStreamOggVorbis: (s as AudioStreamOggVorbis).loop = true
 	return s
 
+## v0.23 play a one-shot cue on the music bus (no loop); zone changes are
+## remembered and resumed by stop_score().
+func play_score(key: String) -> void:
+	var s = _load(MUSIC_DIR + key + ".ogg")
+	if s == null: return
+	if s is AudioStreamOggVorbis:
+		s = (s as AudioStreamOggVorbis).duplicate()
+		(s as AudioStreamOggVorbis).loop = false
+	if _score == "": _pending_track = _current_track
+	_score = key
+	_current_track = "score:" + key
+	_crossfade(s, 0.4, float(MUSIC_GAIN.get(key, 0.0)))
+
+func stop_score(fade := 3.0) -> void:
+	if _score == "": return
+	_score = ""
+	var key := _pending_track
+	if key == "" or key == "menu" or key.begins_with("score:"): key = Game.zone
+	var stream := _music_stream(key)
+	_current_track = key
+	if stream != null: _crossfade(stream, fade, float(MUSIC_GAIN.get(key, 0.0)))
+
+func score_playing() -> bool:
+	return _score != ""
+
+## v0.23 story dialogue: the music steps back 5 dB while someone speaks.
+func duck_dialogue(on: bool) -> void:
+	_duck_want = -5.0 if on else 0.0
+
 func play_music(track_key: String) -> void:
+	if _score != "":
+		_pending_track = track_key
+		return
 	if (_combat or _boss) and track_key != "menu": return
 	if _current_track == track_key: return
 	var stream := _music_stream(track_key)
 	if stream == null: return
 	_current_track = track_key
-	_crossfade(stream, 2.4)
+	_crossfade(stream, 2.4, float(MUSIC_GAIN.get(track_key, 0.0)))
 
 func set_combat(on: bool) -> void:
 	if _combat == on: return
 	_combat = on
-	if _boss: return
+	if _boss or _score != "": return
 	var key := ("combat" if randf() < 0.6 else "combat2") if on else Game.zone
 	var stream := _music_stream(key)
 	if stream == null: return
 	_current_track = key
-	_crossfade(stream, 0.9 if on else 3.0)
+	_crossfade(stream, 0.9 if on else 3.0, float(MUSIC_GAIN.get(key, 0.0)))
 	if on: play_sfx("drum", null, 1.0, -2.0)
 
 func set_boss(on: bool) -> void:
 	if _boss == on: return
 	_boss = on
+	if _score != "": return
 	var key := "boss" if on else ("combat" if _combat else Game.zone)
 	var stream := _music_stream(key)
 	if stream == null: return
 	_current_track = key
-	_crossfade(stream, 1.2)
+	_crossfade(stream, 1.2, float(MUSIC_GAIN.get(key, 0.0)))
 
-func _crossfade(stream: AudioStream, dur: float = 1.6) -> void:
+func _crossfade(stream: AudioStream, dur: float = 1.6, gain_db: float = 0.0) -> void:
 	var outgoing := _music[_music_active]
 	_music_active = 1 - _music_active
 	var incoming := _music[_music_active]
@@ -272,7 +322,7 @@ func _crossfade(stream: AudioStream, dur: float = 1.6) -> void:
 	incoming.volume_db = -40.0
 	incoming.play()
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(incoming, "volume_db", 0.0, dur)
+	tw.tween_property(incoming, "volume_db", gain_db, dur)
 	if outgoing.playing:
 		tw.tween_property(outgoing, "volume_db", -40.0, dur)
 		tw.chain().tween_callback(outgoing.stop)
@@ -291,6 +341,9 @@ func _set_layer(layer: String, db: float, instant := false) -> void:
 		p.play(randf() * 20.0)
 
 func _process(delta: float) -> void:
+	if _duck != null and absf(_duck_db - _duck_want) > 0.01:
+		_duck_db = move_toward(_duck_db, _duck_want, delta * 10.0)
+		_duck.volume_db = _duck_db
 	_amb_t += delta
 	if _amb_t < 0.25: return
 	_amb_t = 0.0

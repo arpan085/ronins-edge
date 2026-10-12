@@ -16,6 +16,33 @@ const MUTED := Color(0.74, 0.72, 0.68)
 const VERMILION := Color(0.84, 0.20, 0.15)
 
 var cinematic := false          ## true while the intro / epilogue owns the screen
+## v0.23 prologue overlays: big centred cards, a white flash, the title reveal
+## and hold-Esc-to-skip
+var prologue := false
+var _center: Control
+var _c_kanji: Label
+var _c_text: Label
+var _c_t := -1.0
+var _c_len := 4.0
+var _flash: ColorRect
+var _flash_a := 0.0
+var _flash_rate := 4.0
+var _title: Control
+var _t_clip: Control
+var _t_main: Label
+var _t_edge: TextureRect
+var _t_seal: PanelContainer
+var _t_seal_lbl: Label
+var _t_sub: Label
+var _t_slash: ColorRect
+var _t_t := -1.0
+var _t_len := 5.0
+var _hold := 0.0
+var _esc_down := false
+var _skip_hint_t := 0.0
+var _skip_bar: ColorRect
+var _skip_bar_bg: ColorRect
+var f_kanji: Font
 
 var _root: Control
 var _bar_top: ColorRect
@@ -94,8 +121,13 @@ func _ready() -> void:
 	_skip_btn.add_theme_color_override("font_color", PARCHMENT)
 	_skip_btn.pressed.connect(func(): skip.emit())
 	_root.add_child(_skip_btn)
+	_build_v23()
 	# the fade sits above everything else
 	_black = _rect(Color(0, 0, 0, 0))
+	# v0.23 text over black: title cards, the title and the skip bar sit above the fade
+	for n in [_center, _title, _skip_bar_bg, _skip_bar, _skip_btn]:
+		if n != null: _root.move_child(n, -1)
+	_flash = _rect(Color(1, 1, 1, 0))
 	_layout()
 	get_viewport().size_changed.connect(_layout)
 	_apply()
@@ -176,6 +208,71 @@ func _build_dialogue() -> void:
 	v.add_child(_dlg_hint)
 	_root.add_child(_dlg)
 
+func _build_v23() -> void:
+	f_kanji = _font("res://assets/fonts/Kanji.ttf")
+	_center = Control.new()
+	_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_center)
+	_c_kanji = _label(f_kanji, 28, GOLD, 6)
+	_c_text = _label(f_title, 34, PARCHMENT, 8)
+	_c_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_c_text.add_theme_constant_override("line_spacing", 8)
+	_center.add_child(_c_kanji)
+	_center.add_child(_c_text)
+	_title = Control.new()
+	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_title)
+	_t_slash = ColorRect.new()
+	_t_slash.color = Color(1.0, 0.97, 0.9, 1.0)
+	_t_slash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title.add_child(_t_slash)
+	_t_clip = Control.new()
+	_t_clip.clip_contents = true
+	_t_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title.add_child(_t_clip)
+	_t_main = _label(f_title, 92, PARCHMENT, 10)
+	_t_main.text = "RONIN'S  EDGE"
+	_t_clip.add_child(_t_main)
+	# a soft ink edge that leads the reveal
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.7, 1.0])
+	g.colors = PackedColorArray([Color(1, 0.95, 0.85, 0.0), Color(1, 0.95, 0.85, 0.55), Color(1, 1, 1, 0.0)])
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.width = 64
+	gt.height = 8
+	_t_edge = TextureRect.new()
+	_t_edge.texture = gt
+	_t_edge.stretch_mode = TextureRect.STRETCH_SCALE
+	_t_edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title.add_child(_t_edge)
+	_t_seal = PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = VERMILION
+	sb.set_corner_radius_all(5)
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	_t_seal.add_theme_stylebox_override("panel", sb)
+	_t_seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_t_seal_lbl = _label(f_kanji, 30, Color(1, 0.97, 0.92))
+	_t_seal_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_t_seal_lbl.text = "浪人\nの刃"
+	_t_seal.add_child(_t_seal_lbl)
+	_title.add_child(_t_seal)
+	_t_sub = _label(f_semi, 16, GOLD, 4)
+	_t_sub.text = _spaced("A TALE OF KIYOMIZU PROVINCE")
+	_title.add_child(_t_sub)
+	_skip_bar_bg = ColorRect.new()
+	_skip_bar_bg.color = Color(1, 1, 1, 0.18)
+	_skip_bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_skip_bar_bg)
+	_skip_bar = ColorRect.new()
+	_skip_bar.color = GOLD
+	_skip_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_skip_bar)
+
 func _layout() -> void:
 	var sz := _root.get_viewport_rect().size
 	var k := sz.y / 720.0
@@ -217,6 +314,38 @@ func _layout() -> void:
 	_skip_btn.add_theme_font_size_override("font_size", int(15.0 * k))
 	_skip_btn.position = Vector2(sz.x - 120.0 * k, 34.0 * k)
 	_skip_btn.size = Vector2(100.0 * k, 32.0 * k)
+	if _center == null: return
+	_flash.position = Vector2.ZERO
+	_flash.size = sz
+	_center.position = Vector2(0, sz.y * 0.36)
+	_center.size = Vector2(sz.x, sz.y * 0.3)
+	_c_kanji.add_theme_font_size_override("font_size", int(26.0 * k))
+	_c_text.add_theme_font_size_override("font_size", int(30.0 * k))
+	_c_kanji.position = Vector2(0, 0)
+	_c_kanji.size = Vector2(sz.x, 40.0 * k)
+	_c_text.position = Vector2(sz.x * 0.15, 48.0 * k)
+	_c_text.size = Vector2(sz.x * 0.7, 120.0 * k)
+	_title.position = Vector2.ZERO
+	_title.size = sz
+	_t_main.add_theme_font_size_override("font_size", int(84.0 * k))
+	var tw := _t_main.get_combined_minimum_size().x
+	var th := 110.0 * k
+	var tx := (sz.x - tw) * 0.5
+	var ty := sz.y * 0.36
+	_t_clip.position = Vector2(tx, ty)
+	_t_main.position = Vector2.ZERO
+	_t_main.size = Vector2(tw, th)
+	_t_seal_lbl.add_theme_font_size_override("font_size", int(22.0 * k))
+	_t_seal.position = Vector2(tx + tw + 14.0 * k, ty + 14.0 * k)
+	_t_sub.add_theme_font_size_override("font_size", int(15.0 * k))
+	_t_sub.position = Vector2(0, ty + th + 4.0 * k)
+	_t_sub.size = Vector2(sz.x, 26.0 * k)
+	_t_slash.position = Vector2(0, ty + th * 0.52)
+	_t_slash.size = Vector2(sz.x, maxf(2.0, 3.0 * k))
+	_t_edge.size = Vector2(60.0 * k, th)
+	_skip_bar_bg.position = Vector2(sz.x - 222.0 * k, 34.0 * k + 36.0 * k)
+	_skip_bar_bg.size = Vector2(200.0 * k, maxf(2.0, 3.0 * k))
+	_skip_bar.position = _skip_bar_bg.position
 
 # ------------------------------------------------------------------ api
 func letterbox(on: bool) -> void:
@@ -274,6 +403,29 @@ func finish_typing() -> void:
 func hide_dialogue() -> void:
 	_dlg_want = 0.0
 
+## v0.23 a big centred card (kanji line above, text below) that fades in and out.
+func center_text(kanji: String, text: String, seconds := 4.0) -> void:
+	_c_kanji.text = kanji
+	_c_text.text = text
+	_c_t = 0.0
+	_c_len = seconds
+
+## v0.23 white flash that decays over `seconds`.
+func flash(strength := 1.0, seconds := 0.25) -> void:
+	_flash_a = clampf(strength, 0.0, 1.0)
+	_flash_rate = 1.0 / maxf(seconds, 0.02)
+
+## v0.23 the title: a sword-light slash, the name brushed in left to right,
+## the seal stamped beside it, the line beneath; all out after `seconds`.
+func title_reveal(seconds := 5.0) -> void:
+	_t_t = 0.0
+	_t_len = seconds
+	flash(0.55, 0.35)
+	_layout()
+
+func title_showing() -> bool:
+	return _t_t >= 0.0
+
 func set_cinematic(on: bool) -> void:
 	cinematic = on
 	letterbox(on)
@@ -287,6 +439,7 @@ static func _spaced(s: String) -> String:
 
 # ------------------------------------------------------------------ frame
 func _process(delta: float) -> void:
+	_tick_v23(delta)
 	var lb := _bars
 	_bars = move_toward(_bars, _bars_want, delta * 1.6)
 	_black_a = move_toward(_black_a, _black_want, delta * _black_rate)
@@ -300,6 +453,59 @@ func _process(delta: float) -> void:
 		_dlg_text.visible_characters = int(_type_t * 48.0)
 	if absf(lb - _bars) > 0.0001 or _dlg_a > 0.001: _layout()
 	_apply()
+
+func _tick_v23(delta: float) -> void:
+	if _center == null: return
+	_flash_a = maxf(0.0, _flash_a - delta * _flash_rate)
+	_flash.color = Color(1, 1, 1, _flash_a)
+	_flash.visible = _flash_a > 0.002
+	var ca := 0.0
+	if _c_t >= 0.0:
+		_c_t += delta
+		ca = clampf(_c_t / 1.0, 0.0, 1.0) * clampf((_c_len - _c_t) / 0.9, 0.0, 1.0)
+		if _c_t > _c_len: _c_t = -1.0
+	_center.modulate = Color(1, 1, 1, ca)
+	_center.visible = ca > 0.001
+	# title
+	if _t_t >= 0.0:
+		_t_t += delta
+		var tt := _t_t
+		var out := clampf((_t_len - tt) / 1.1, 0.0, 1.0)
+		var sl := clampf(tt / 0.22, 0.0, 1.0)
+		var sz := _root.get_viewport_rect().size
+		_t_slash.size.x = sz.x * sl
+		_t_slash.position.x = sz.x * 0.5 * (1.0 - sl)
+		_t_slash.modulate = Color(1, 1, 1, clampf(1.0 - (tt - 0.22) / 0.5, 0.0, 1.0))
+		var rv := clampf((tt - 0.12) / 1.25, 0.0, 1.0)
+		rv = 1.0 - pow(1.0 - rv, 3.0)
+		var full := _t_main.size.x
+		_t_clip.size = Vector2(full * rv + 2.0, _t_main.size.y)
+		_t_edge.position = Vector2(_t_clip.position.x + full * rv - _t_edge.size.x * 0.7, _t_clip.position.y)
+		_t_edge.modulate = Color(1, 1, 1, (1.0 - rv) * 1.4 if rv > 0.0 else 0.0)
+		var st := clampf((tt - 1.0) / 0.25, 0.0, 1.0)
+		_t_seal.pivot_offset = _t_seal.size * 0.5
+		_t_seal.scale = Vector2.ONE * lerpf(1.7, 1.0, st)
+		_t_seal.modulate = Color(1, 1, 1, st)
+		_t_sub.modulate = Color(1, 1, 1, clampf((tt - 1.5) / 0.8, 0.0, 1.0))
+		_title.modulate = Color(1, 1, 1, out)
+		_title.visible = true
+		if tt > _t_len: _t_t = -1.0
+	else:
+		_title.visible = false
+	# hold Esc to skip the prologue
+	if prologue and _esc_down:
+		_hold += delta
+		if _hold >= 0.9:
+			_hold = 0.0
+			_esc_down = false
+			skip.emit()
+	else:
+		_hold = maxf(0.0, _hold - delta * 3.0)
+	_skip_hint_t = maxf(0.0, _skip_hint_t - delta)
+	var show_bar := prologue and (_hold > 0.0 or _skip_hint_t > 0.0)
+	_skip_bar_bg.visible = show_bar
+	_skip_bar.visible = show_bar and _hold > 0.0
+	_skip_bar.size = Vector2(_skip_bar_bg.size.x * clampf(_hold / 0.9, 0.0, 1.0), _skip_bar_bg.size.y)
 
 func _apply() -> void:
 	_black.color = Color(0, 0, 0, _black_a)
@@ -316,10 +522,22 @@ func _apply() -> void:
 	_ch_line.size.x = 160.0 * (_root.get_viewport_rect().size.y / 720.0) * clampf(_ch_t / 1.2, 0.0, 1.0)
 	_dlg.modulate = Color(1, 1, 1, _dlg_a)
 	_dlg.visible = _dlg_a > 0.001
-	_hint.visible = cinematic
+	_hint.visible = cinematic and (not prologue or _skip_hint_t > 0.0 or _hold > 0.0)
 	_skip_btn.visible = cinematic
+	_hint.text = "Hold Esc to skip" if prologue else "Enter  next     Esc  skip"
 
 func _input(event: InputEvent) -> void:
+	if cinematic and prologue:
+		# the prologue runs to its score: no paging, Esc must be held to skip
+		if event is InputEventKey and not event.echo:
+			var kk: int = (event as InputEventKey).keycode
+			if kk == KEY_ESCAPE:
+				_esc_down = event.pressed
+				get_viewport().set_input_as_handled()
+			if event.pressed: _skip_hint_t = 2.5
+		elif (event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed:
+			_skip_hint_t = 2.5
+		return
 	if cinematic:
 		if event is InputEventKey and event.pressed and not event.echo:
 			var kc: int = (event as InputEventKey).keycode
