@@ -51,6 +51,7 @@ func _ready() -> void:
 	_info.add_theme_color_override("font_color", Color(0.68, 0.68, 0.70))
 	_info.position = Vector2(0, 620)
 	_info.size = Vector2(1280, 80)
+	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_info)
 	_refresh_info()
@@ -61,8 +62,11 @@ func _refresh_info() -> void:
 	var last := ""
 	if Game.has_save():
 		last = "  ·  save found (%s, %d mastery)" % [Game.ZONE_TITLE.get(Game.zone, Game.zone), Game.mastery_points]
-	_info.text = "Graphics: %s  ·  %s%s\nKeyboard/mouse or touch.  WASD move · J light · K heavy · L block · Space dodge · Tab lock · Q stance · R special · F interact · Esc pause" % [
-		q, "touch controls enabled" if (OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()) else "desktop input", last]
+	var L := func(a: String) -> String: return Game.bind_label(a)
+	_info.text = ("Graphics: %s  ·  %s%s\n" % [q, "touch controls enabled" if (OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()) else "desktop input", last]) \
+		+ "WASD move · %s sprint · %s walk · %s jump · %s roll · %s light · %s heavy · %s kick · %s punch · %s guard · %s draw/sheathe · 1-4 weapons · %s call horse · %s mount · %s lock · Esc pause (rebind in Pause > Controls)" % [
+		L.call("sprint"), L.call("walk"), L.call("jump"), L.call("dodge"), L.call("attack"), L.call("heavy"), L.call("kick"),
+		L.call("punch"), L.call("block"), L.call("sheathe"), L.call("call_horse"), L.call("interact"), L.call("lock_on")]
 
 func _add(text: String, cb: Callable) -> Button:
 	var b := Button.new()

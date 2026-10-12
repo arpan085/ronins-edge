@@ -13,6 +13,12 @@ func _configure() -> void:
 	damage = 12.0; posture_dmg = 12.0
 	reach = 1.6; arc = 60.0
 	detect_radius = 22.0
+	# a bowman cannot parry with a bow: close in and he is yours. He does
+	# sometimes hold the draw to throw off your timing.
+	guard_chance = 0.0
+	perilous_thrust = 0.0
+	perilous_sweep = 0.0
+	delay_chance = 0.0
 
 func _model_path() -> String:
 	return "res://assets/models/Archer_Ronin.glb"
@@ -47,7 +53,7 @@ func _chase(delta: float, pp: Vector3, dist: float) -> void:
 			_attack_hit_done = false
 			_attack_started = false
 			_set_state(S.ATTACK)
-			Audio.play_sfx("enemy_attack", global_position, 1.3, -8.0)
+			Audio.play_sfx("cloth", global_position, 1.1, -4.0)
 
 func _perform_attack() -> void:
 	if player == null: return
@@ -60,4 +66,4 @@ func _perform_attack() -> void:
 	a.damage = damage
 	a.posture = posture_dmg
 	a.shooter = self
-	Audio.play_sfx("swing", global_position, 1.4, -10.0)
+	Audio.play_sfx("bow", global_position, 1.0, 0.0)

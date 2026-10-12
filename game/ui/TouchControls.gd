@@ -12,6 +12,12 @@ const DEFAULT_LAYOUT := {
 	"special":  {"frac": Vector2(0.762, 0.500), "r": 36.0, "label": "SPRT", "action": "special",  "hold": false},
 	"interact": {"frac": Vector2(0.966, 0.470), "r": 34.0, "label": "USE",  "action": "interact", "hold": false},
 	"sprint":   {"frac": Vector2(0.190, 0.800), "r": 34.0, "label": "SPRN", "special": "sprint",  "hold": true},
+	"heal":     {"frac": Vector2(0.268, 0.905), "r": 32.0, "label": "HEAL", "action": "heal",     "hold": false},
+	"map":      {"frac": Vector2(0.700, 0.080), "r": 28.0, "label": "MAP",  "special": "map",     "hold": false},
+	# v0.16 stealth and techniques
+	"crouch":   {"frac": Vector2(0.268, 0.700), "r": 32.0, "label": "CRCH", "action": "crouch",   "hold": false},
+	"smoke":    {"frac": Vector2(0.690, 0.845), "r": 30.0, "label": "SMKE", "action": "smoke",    "hold": false},
+	"skills":   {"frac": Vector2(0.640, 0.080), "r": 28.0, "label": "TECH", "special": "skills",  "hold": false},
 }
 const STICK_FRAC := Vector2(0.128, 0.760)
 const STICK_R := 84.0
@@ -47,7 +53,9 @@ func _ready() -> void:
 	_control = Layer.new()
 	_control.tc = self
 	_control.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_control.mouse_filter = Control.MOUSE_FILTER_PASS
+	# touch is read in _input(), so this full-screen layer must never take mouse
+	# clicks: with PASS it sat above the pause menu and ate every button click (v12 bug)
+	_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_control)
 	_scale = float(Game.settings.get("touch_scale", 1.0))
 	_update_visibility()
@@ -155,6 +163,20 @@ func _press(id: String) -> void:
 		Input.action_press(String(b["action"]))
 	if b.get("special", "") == "sprint":
 		Game.touch_sprint = true
+	if b.get("special", "") == "skills":
+		_pressed[id] = false
+		if world != null and world.hud != null and world.hud.has_method("open_skills"):
+			world.hud.open_skills()
+		_control.queue_redraw()
+		return
+	if b.get("special", "") == "map":
+		# the map pauses the tree, so this button can never see its own
+		# release: open it directly and leave nothing held
+		_pressed[id] = false
+		if world != null and world.hud != null and world.hud.has_method("open_map"):
+			world.hud.open_map()
+		_control.queue_redraw()
+		return
 	if id == "block":
 		Game.touch_block = true
 	Audio.play_ui()

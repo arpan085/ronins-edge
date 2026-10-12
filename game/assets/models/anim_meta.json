@@ -448,7 +448,7 @@
     "loop": false
    }
   },
-  "tris": 3596
+  "tris": 13258
  },
  "ashigaru": {
   "bones": 38,
@@ -649,7 +649,7 @@
     "loop": true
    }
   },
-  "tris": 3372
+  "tris": 12934
  },
  "archer": {
   "bones": 38,
@@ -908,7 +908,7 @@
     "loop": true
    }
   },
-  "tris": 3920
+  "tris": 13542
  },
  "captain": {
   "bones": 38,
@@ -1129,6 +1129,6 @@
     "loop": false
    }
   },
-  "tris": 3940
+  "tris": 13900
  }
 }
