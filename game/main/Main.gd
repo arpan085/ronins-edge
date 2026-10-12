@@ -65,19 +65,40 @@ func start_world(from_save: bool) -> void:
 	await get_tree().create_timer(0.25).timeout
 	loading.queue_free()
 	loading = null
-	if from_save:
-		Quests.start_next()
-	if not from_save and world.player != null:
-		Game.notice.emit("Sakura Shrine — the path begins", "zone")
+	if DisplayServer.get_name() != "headless":
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# v0.14: the story owns the quest chain. A new game opens with the
+	# prologue; harnesses that host Main inside their own scene, and headless
+	# runs, skip it.
+	var st = world.get("story")
+	if st == null:
+		if Quests.current_id() == "": Quests.start_next()
+	elif from_save:
+		st.resume()
+	elif get_tree().current_scene == self and DisplayServer.get_name() != "headless":
+		st.play_intro()
+	else:
+		st.begin()
 
+## Main is paused together with the world, so it only ever *opens* the pause
+## menu; the menu itself handles Esc to close (it keeps processing while paused).
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause"):
-		if world != null and world.hud != null and world.hud.has_method("toggle_pause"):
-			world.hud.toggle_pause()
+	if event.is_action_pressed("pause") and not get_tree().paused:
+		if world != null and world.hud != null and world.hud.has_method("set_paused"):
+			world.hud.set_paused(true)
+			get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("debug"):
 		Game.settings["show_fps"] = not bool(Game.settings.get("show_fps", false))
 		if Perf.overlay != null: Perf.overlay.visible = bool(Game.settings["show_fps"])
 	elif event.is_action_pressed("ui_restart") and world != null:
 		world.respawn()
-	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed \
+			and world != null and not get_tree().paused and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		# clicking back into the game (after alt-tab) recaptures the mouse
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _notification(what: int) -> void:
+	# losing window focus while playing opens the pause menu, so the cursor is free
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and world != null and not get_tree().paused:
+		if world.hud != null and world.hud.has_method("set_paused") and DisplayServer.get_name() != "headless":
+			world.hud.set_paused(true)

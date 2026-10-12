@@ -11,6 +11,10 @@ static var _meta_cache := {}
 
 var rig: AnimRig
 var foot_ik: FootIK
+var carry: SwordCarry
+## Character kinds whose scabbard bone carries a real katana saya.
+const SAYA_KINDS := ["kaito"]
+var polish: LocoPolish
 var look: LookAtLayer
 var lod: AnimLOD
 var skeleton: Skeleton3D
@@ -35,6 +39,8 @@ var _last_state := ""
 var _react_lock := 0.0
 var _grounded := true
 var _rm_prev := Vector3.ZERO
+var _prev_sp := 0.0
+var _prev_yaw := 0.0
 
 # ---------------------------------------------------------------- build
 static func _load_meta() -> Dictionary:
@@ -68,6 +74,9 @@ func build(host: Node3D, glb: String, character: String, is_player := false) -> 
 	if anim_player == null or skeleton == null:
 		push_error("AnimDriver: rig not found in %s" % glb)
 		return false
+	# glTF can only carry base colour, metallic, roughness and a normal map.
+	# Put back the parts of the look it cannot express.
+	MatPolish.apply(inst)
 	rig = AnimRig.new()
 	rig.name = "AnimRig"
 	add_child(rig)
@@ -77,14 +86,29 @@ func build(host: Node3D, glb: String, character: String, is_player := false) -> 
 	foot_ik = FootIK.new()
 	foot_ik.name = "FootIK"
 	skeleton.add_child(foot_ik)
+	# Every rig has a scabbard bone, but only the ronin has a katana saya
+	# hanging off it -- the levy troops carry a pouch there, the archer a
+	# quiver and the captain a sashimono banner. Parking a blade in any of
+	# those would look like a bug, so the carry modifier is only built for
+	# the kinds that actually own a saya.
+	if SAYA_KINDS.has(kind):
+		carry = SwordCarry.new()
+		carry.name = "SwordCarry"
+		skeleton.add_child(carry)
 	look = LookAtLayer.new()
 	look.name = "LookAt"
 	skeleton.add_child(look)
+	# Secondary body motion. Added before FootIK in the child order so the IK
+	# still gets the last word on where the feet land.
+	polish = LocoPolish.new()
+	polish.name = "LocoPolish"
+	skeleton.add_child(polish)
+	skeleton.move_child(polish, 0)
 	lod = AnimLOD.new()
 	lod.name = "AnimLOD"
 	lod.is_player = is_player
 	add_child(lod)
-	lod.setup(host, rig, foot_ik, look)
+	lod.setup(host, rig, foot_ik, look, polish)
 	_build_speed_table()
 	var w := float(_row_target[3]) if _row_target.size() > 5 else 0.0
 	var j := float(_row_target[4]) if _row_target.size() > 5 else 0.0
@@ -144,6 +168,13 @@ func tick(delta: float, vel: Vector3, want_yaw: float, has_input: bool,
 	else:
 		rig.set_loco_speed(1.0)
 	rig.set_breathe(clampf(0.65 - sp * 0.08, 0.05, 0.65))
+	if polish != null:
+		var dsp: float = (sp - _prev_sp) / maxf(delta, 0.0001)
+		_prev_sp = sp
+		var dyaw: float = wrapf(want_yaw - _prev_yaw, -PI, PI) / maxf(delta, 0.0001)
+		_prev_yaw = want_yaw
+		polish.set_motion(sp / maxf(speed_sprint, 0.1),
+			clampf(dsp / 9.0, -1.0, 1.0), clampf(dyaw / 3.2, -1.0, 1.0), grounded)
 	if not allow_loco:
 		return want_yaw
 	# ------- turning: transfer weight, then rotate over the clip

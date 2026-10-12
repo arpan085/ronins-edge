@@ -20,12 +20,18 @@ var _b := {}
 var _yaw := 0.0
 var _pitch := 0.0
 var _ok := false
+var _fwd_z := false   ## v0.18: the shared base body faces +Z, the old rigs -Z
 
 func _ready() -> void:
 	_skel = get_skeleton()
 	if _skel == null: return
 	for n in ["chest", "upperchest", "neck", "head", "eye.L", "eye.R"]:
 		_b[n] = _skel.find_bone(n)
+	# v0.18: the shared base body uses Unreal-style bone names
+	if _b["head"] < 0 and _skel.find_bone("Head") >= 0:
+		_b = {"chest": _skel.find_bone("spine_02"), "upperchest": _skel.find_bone("spine_03"),
+			"neck": _skel.find_bone("neck_01"), "head": _skel.find_bone("Head"), "eye.L": -1, "eye.R": -1}
+		_fwd_z = true
 	_ok = _b.get("head", -1) >= 0
 
 func look_at_point(p: Vector3) -> void:
@@ -49,7 +55,7 @@ func _process_modification() -> void:
 		var to: Vector3 = base.affine_inverse().basis * (target - head_w)
 		if to.length() > 0.05:
 			to = to.normalized()
-			wy = rad_to_deg(atan2(-to.x, -to.z))
+			wy = rad_to_deg(atan2(to.x, to.z)) if _fwd_z else rad_to_deg(atan2(-to.x, -to.z))
 			wp = rad_to_deg(asin(clampf(to.y, -1.0, 1.0)))
 			wy = clampf(wy, -yaw_limit, yaw_limit)
 			wp = clampf(wp, -pitch_limit, pitch_limit)

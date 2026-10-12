@@ -54,9 +54,9 @@ const DEFS := {
 	},
 	"duel": {
 		"title": "The Final Duel", "zone": "castle",
-		"desc": "The Captain of the ruins waits for you.",
+		"desc": "Kuroda Masanori waits before the keep.",
 		"objectives": [
-			{"id": "boss", "text": "Break the Captain's posture and land the Deathblow", "type": "boss", "target": "captain", "count": 1},
+			{"id": "boss", "text": "Break Kuroda's posture and land the Deathblow", "type": "boss", "target": "captain", "count": 1},
 		],
 		"reward": {"xp": 10, "text": "Reward: Ronin's Edge complete"}
 	},
@@ -116,6 +116,22 @@ func current_objective_text() -> String:
 		if int(prog.get(o["id"], 0)) < int(o["count"]):
 			return "%s  (%d/%d)" % [o["text"], int(prog.get(o["id"], 0)), int(o["count"])]
 	return "Return to %s" % def["title"]
+
+## What the HUD radar and the world beacon point at: {"type", "target", "zone"}
+## for the first unfinished objective, the next quest's zone between quests, or
+## {} when there is nothing left to do.
+func current_objective() -> Dictionary:
+	var id := current_id()
+	if id == "":
+		if order_index < ORDER.size():
+			return {"type": "zone", "target": "", "zone": String(DEFS[ORDER[order_index]]["zone"])}
+		return {}
+	var def: Dictionary = DEFS[id]
+	var prog: Dictionary = active[id]["progress"]
+	for o in def["objectives"]:
+		if int(prog.get(o["id"], 0)) < int(o["count"]):
+			return {"type": String(o["type"]), "target": String(o["target"]), "zone": String(def["zone"])}
+	return {}
 
 func objectives(id: String) -> Array:
 	var out := []

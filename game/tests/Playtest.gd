@@ -14,10 +14,17 @@ var ft_hist := {}
 var samples := []
 var player: Node = null
 var log_t := 0.0
+var sink_max := 0.0
+var sink_n := 0
+var pen_n := 0
+var terrain: Node = null
+var solids: Node = null
 
 var beats := [
 	{"n": "spawn",      "t": 2.0, "mv": Vector2.ZERO},
 	{"n": "walk_out",   "t": 2.2, "mv": Vector2(0, -0.45)},
+	{"n": "jump_run",   "t": 3.0, "mv": Vector2(0, -0.9), "act": "jump", "every": 1.0},
+	{"n": "draw",       "t": 2.0, "mv": Vector2.ZERO, "act": "sheathe", "every": 1.4},
 	{"n": "sprint_out", "t": 3.3, "mv": Vector2(0, -1.0), "sprint": true},
 	{"n": "turn_back",  "t": 2.2, "mv": Vector2(0.9, 0.5)},
 	{"n": "seek",       "t": 4.4, "mv": Vector2(-0.6, -0.9), "sprint": true},
@@ -28,6 +35,7 @@ var beats := [
 	{"n": "finish",     "t": 4.4, "mv": Vector2(0, -0.5), "act": "heavy", "every": 1.3, "lock": true},
 	{"n": "withdraw",   "t": 2.8, "mv": Vector2(0.4, 1.0)},
 	{"n": "rest",       "t": 2.0, "mv": Vector2.ZERO},
+	{"n": "put_away",   "t": 5.0, "mv": Vector2.ZERO},
 ]
 var act_t := 0.0
 
@@ -47,9 +55,7 @@ func _ready() -> void:
 		main.start_world(false)
 		print("PLAYTEST started world")
 	await get_tree().create_timer(3.0).timeout
-	for n in get_tree().root.get_children():
-		player = n.find_child("Player", true, false)
-		if player != null: break
+	player = _find_player()
 	if player == null:
 		var all := []
 		_collect(get_tree().root, all)
@@ -57,7 +63,54 @@ func _ready() -> void:
 			if n.is_class("CharacterBody3D") and n.get("max_hp") != null and n.get("posture") != null:
 				player = n
 				break
+	# Put the pilot next to a real spawn point, otherwise the walk never gets
+	# within SPAWN_RADIUS of anything and the fight beats test nothing.
+	var world = null
+	for n in get_tree().root.get_children():
+		var w = n.get_node_or_null("World")
+		if w != null: world = w
+	if world == null and main != null: world = main.get("world")
+	if world != null and player != null:
+		var tbl: Array = world.get("spawn_table")
+		var best: Dictionary = {}
+		for s in tbl:
+			if bool(s.get("boss", false)): continue
+			best = s
+			break
+		if not best.is_empty():
+			var sp: Vector3 = best["pos"]
+			world.warp_to(sp + Vector3(14, 0, 14))
+			print("PLAYTEST warped near spawn ", best.get("id", "?"))
+			await get_tree().create_timer(1.5).timeout
 	print("PLAYTEST player=", player, " enemies=", _rigs().size())
+
+## How far the capsule's feet sit below the visual terrain surface, and how
+## often the capsule is overlapping a solid body. Both should stay at ~0.
+func _track_ground() -> void:
+	if terrain == null:
+		var st: Array = [get_tree().root]
+		while not st.is_empty():
+			var nd: Node = st.pop_back()
+			if nd is Terrain: terrain = nd
+			if nd is SolidBodies: solids = nd
+			for c in nd.get_children(): st.append(c)
+		if terrain == null: return
+	var pp: Vector3 = player.global_position
+	if not bool(player.is_on_floor()): return
+	sink_n += 1
+	var gh: float = terrain.sample_height(pp.x, pp.z)
+	sink_max = maxf(sink_max, gh - pp.y)
+	# penetration: a capsule slightly smaller than the player's own, at the
+	# player's own position, must not intersect world geometry
+	var q := PhysicsShapeQueryParameters3D.new()
+	var cap := CapsuleShape3D.new()
+	cap.radius = 0.30
+	cap.height = 1.55
+	q.shape = cap
+	q.collision_mask = 1
+	q.transform = Transform3D(Basis(), pp + Vector3(0, 0.86, 0))
+	if not player.get_world_3d().direct_space_state.intersect_shape(q, 1).is_empty():
+		pen_n += 1
 
 func _collect(n: Node, out: Array) -> void:
 	if n != player and n.get("driver") != null:
@@ -81,10 +134,9 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if beat >= beats.size(): return
 	if player == null or not is_instance_valid(player):
-		for n in get_tree().root.get_children():
-			player = n.find_child("Player", true, false)
-			if player != null: break
+		player = _find_player()
 		if player == null: return
+	_track_ground()
 	var p: Dictionary = beats[beat]
 	t += delta
 	log_t += delta
@@ -137,6 +189,13 @@ func _snapshot(label: String) -> void:
 			sk_upd += 1
 		var sk = d.get("skeleton")
 		if sk != null and sk.is_visible_in_tree(): vis += 1
+	# Carry and air state: a sheathed sword and a jump that never happens are
+	# both silent failures otherwise.
+	if player != null:
+		var carried: String = "sheathed" if bool(player.call("is_sheathed")) else "drawn"
+		print("CARRY %-11s %s state=%d grounded=%s y=%.2f"
+			% [label, carried, int(player.get("state")),
+			str(player.call("is_on_floor")), float(player.global_position.y)])
 	samples.append({"beat": label, "enemies": rigs.size(), "visible": vis,
 		"rigs_ok": sk_upd, "lod": lods,
 		"fps": Engine.get_frames_per_second(),
@@ -145,6 +204,10 @@ func _snapshot(label: String) -> void:
 		"hp": (player.get("hp") if player != null else -1)})
 
 func _shoot(name: String) -> void:
+	# `godot --headless` has no renderer, so there is nothing to photograph; the
+	# run is still a full check of world streaming, AI, combat and collision.
+	if DisplayServer.get_name() == "headless":
+		return
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	img.save_png("user://play_%02d_%s.png" % [shots, name])
@@ -175,6 +238,25 @@ func _report() -> void:
 	L.append("")
 	L.append("frames=%d  mean=%.1f ms  p50=%d ms  p95=%d ms  p99=%d ms  worst(after warmup)=%.1f ms" % [
 		frames, (ft_sum / maxf(frames, 1)) * 1000.0, p50, p95, p99, ft_max * 1000.0])
+	var sq := ""
+	if solids != null:
+		sq = "  structures=%d streamed=%d active=%d" % [solids.structures, solids.streamed_items, solids.active]
+	L.append("ground: samples=%d max_sink=%.3fm penetrating_frames=%d (%.2f%%)%s" % [
+		sink_n, sink_max, pen_n, 100.0 * float(pen_n) / maxf(1.0, float(sink_n)), sq])
 	L.append("PLAYTEST_DONE shots=%d" % shots)
 	print("\n".join(L))
 	get_tree().quit()
+
+## The world's own player reference (the node has been named "Kaito" since the
+## story pass, so a search for a node called "Player" finds nothing -- the
+## fallback below then grabbed an enemy, which despawned, and the run stalled).
+func _find_player() -> Node:
+	var main := get_parent().get_node_or_null("Main")
+	var w = main.get("world") if main != null else null
+	if w != null and is_instance_valid(w):
+		var p = w.get("player")
+		if p != null and is_instance_valid(p): return p
+	for n in get_tree().root.get_children():
+		var f := n.find_child("Kaito", true, false)
+		if f != null: return f
+	return null

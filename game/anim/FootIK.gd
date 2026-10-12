@@ -2,6 +2,12 @@ class_name FootIK
 extends SkeletonModifier3D
 ## Two-link leg IK with ground raycasts and pelvis compensation so feet stay
 ## planted on slopes and steps instead of floating or sinking.
+## v0.22: also drives the Universal Base Character skeleton (the ronin and the
+## soldiers since v0.18: pelvis / thigh_l / calf_l / foot_l / ball_l), and
+## reports each footfall (signal footfall) so steps are heard when a foot
+## actually lands instead of on a timer.
+
+signal footfall(side: String, pos: Vector3)
 
 @export var enabled := true
 @export var ray_up := 0.55
@@ -22,22 +28,46 @@ var _norm := {"L": Vector3.UP, "R": Vector3.UP}
 var _hips_rest := Vector3.ZERO
 var _ok := false
 var _grounded := true
+var ubc := false              ## v0.22: bound to the UBC skeleton
+var _ankle_rest := 0.0        ## UBC: ankle height above the sole in the rest pose
+var _fwd := Vector3.FORWARD   ## character forward in skeleton space (knee side)
+var _armed := {"L": false, "R": false}
+var _gap := {"L": 0.0, "R": 0.0}
+var live_frames := 0          ## modification passes run (0 = not processing)
+const KEYS := ["hips", "thigh.L", "shin.L", "foot.L", "toe.L", "thigh.R", "shin.R", "foot.R", "toe.R"]
+const NAMES_UBC := ["pelvis", "thigh_l", "calf_l", "foot_l", "ball_l", "thigh_r", "calf_r", "foot_r", "ball_r"]
 
 func _ready() -> void:
 	_skel = get_skeleton()
 	if _skel == null: return
-	for n in ["hips", "thigh.L", "shin.L", "foot.L", "toe.L", "thigh.R", "shin.R", "foot.R", "toe.R"]:
-		_b[n] = _skel.find_bone(n)
-		if _b[n] < 0:
-			return
+	if not _bind(KEYS):
+		if not _bind(NAMES_UBC): return
+		ubc = true
+		_ankle_rest = _skel.get_bone_global_rest(_b["foot.L"]).origin.y
+	var toe: Vector3 = _skel.get_bone_global_rest(_b["toe.L"]).origin - _skel.get_bone_global_rest(_b["foot.L"]).origin
+	toe.y = 0.0
+	if toe.length() > 0.01: _fwd = toe.normalized()
 	for s in ["L", "R"]:
 		_len["thigh." + s] = _skel.get_bone_rest(_b["shin." + s]).origin.length()
 		_len["shin." + s] = _skel.get_bone_rest(_b["foot." + s]).origin.length()
 	_hips_rest = _skel.get_bone_rest(_b["hips"]).origin
 	_ok = true
 
+func _bind(names: Array) -> bool:
+	var b := {}
+	for i in KEYS.size():
+		var bi := _skel.find_bone(names[i])
+		if bi < 0: return false
+		b[KEYS[i]] = bi
+	_b = b
+	return true
+
 func set_grounded(g: bool) -> void:
 	_grounded = g
+
+## Height of each sole above the ground, from the animated pose (before the IK).
+func sole_gap(s: String) -> float:
+	return float(_gap.get(s, 0.0))
 
 func _process_modification() -> void:
 	if not _ok or not enabled or influence <= 0.001:
@@ -48,6 +78,8 @@ func _process_modification() -> void:
 	var xf := _skel.global_transform
 	var inv := xf.affine_inverse()
 	var space := _skel.get_world_3d().direct_space_state
+	live_frames += 1
+	if ubc: ankle_height = _ankle_rest * xf.basis.get_scale().y
 	var want := {"L": 0.0, "R": 0.0}
 	# Ground height under the character itself. Foot targets are expressed as a
 	# *delta* from this plane, never as an absolute pin: pinning the ankle to
@@ -62,6 +94,7 @@ func _process_modification() -> void:
 	if _grounded:
 		for s in ["L", "R"]:
 			var ankle_w: Vector3 = xf * _skel.get_bone_global_pose(_b["foot." + s]).origin
+			_step_event(s, ankle_w, base_y)
 			var q := PhysicsRayQueryParameters3D.create(
 				ankle_w + Vector3.UP * ray_up, ankle_w + Vector3.DOWN * ray_down)
 			q.collision_mask = collision_mask
@@ -78,11 +111,16 @@ func _process_modification() -> void:
 			want[s] = clampf(maxf(terrain, pen), -max_foot_lift, max_foot_lift)
 			var n: Vector3 = hit.normal
 			if n.angle_to(Vector3.UP) > deg_to_rad(normal_limit_deg):
-				n = Vector3.UP.slerp(n, deg_to_rad(normal_limit_deg) / max(n.angle_to(Vector3.UP), 0.001))
+				n = _tilt_from_up(n, deg_to_rad(normal_limit_deg) / max(n.angle_to(Vector3.UP), 0.001))
 			_norm[s] = _norm[s].lerp(n.normalized(), k)
 	else:
 		_norm["L"] = _norm["L"].lerp(Vector3.UP, k)
 		_norm["R"] = _norm["R"].lerp(Vector3.UP, k)
+	# The smoothing only approaches UP; snap once it is there so the residual
+	# tilt does not decay into denormal floats (slow, and see _tilt_from_up).
+	for s in ["L", "R"]:
+		if (_norm[s] as Vector3).distance_squared_to(Vector3.UP) < 1e-12:
+			_norm[s] = Vector3.UP
 	for s in ["L", "R"]:
 		# Asymmetric response: a step-up moves the body 0.28 m in a single
 		# physics tick, and symmetric smoothing left both feet hanging 0.29 m
@@ -100,6 +138,10 @@ func _process_modification() -> void:
 		kp = clampf(k * 3.2, 0.0, 1.0)
 	_pelvis_off = lerpf(_pelvis_off, target_off, kp)
 	var off_local: Vector3 = inv.basis * Vector3(0.0, _pelvis_off * influence, 0.0)
+	# bone pose positions live in the parent bone's frame (the UBC root bone is
+	# turned -90 deg about X), so carry the skeleton-space drop into it
+	var par := _skel.get_bone_parent(_b["hips"])
+	if par >= 0: off_local = _skel.get_bone_global_pose(par).basis.inverse() * off_local
 	_skel.set_bone_pose_position(_b["hips"], _skel.get_bone_pose_position(_b["hips"]) + off_local)
 	for s in ["L", "R"]:
 		var lift: float = (_lift[s] - _pelvis_off) * influence
@@ -124,7 +166,9 @@ func _solve_leg(s: String, lift: float, xf: Transform3D, inv: Transform3D) -> vo
 	# hinge axis: the knee's current bend axis, falling back to the body's right
 	var hinge: Vector3 = (knee_now - hip).cross(target - knee_now)
 	if hinge.length() < 1e-4:
-		hinge = t_thigh.basis.x
+		# straight leg: bend in the plane of the leg and the character's forward
+		hinge = vd.cross(_fwd) if ubc else t_thigh.basis.x
+	if hinge.length() < 1e-6: return
 	hinge = hinge.normalized()
 	if absf(vd.dot(hinge)) > 0.99: return
 	var cos_a: float = clampf((L1 * L1 + d * d - L2 * L2) / (2.0 * L1 * d), -1.0, 1.0)
@@ -132,7 +176,8 @@ func _solve_leg(s: String, lift: float, xf: Transform3D, inv: Transform3D) -> vo
 	var c1: Vector3 = vd.rotated(hinge, a1)
 	var c2: Vector3 = vd.rotated(hinge, -a1)
 	var ref: Vector3 = (knee_now - hip).normalized()
-	var dir: Vector3 = c1 if c1.dot(ref) >= c2.dot(ref) else c2
+	# the knee keeps its current side; a nearly straight leg bends forward
+	var dir: Vector3 = c1 if c1.dot(ref) + 0.05 * c1.dot(_fwd) >= c2.dot(ref) + 0.05 * c2.dot(_fwd) else c2
 	# thigh
 	var axis_t: Vector3 = _skel.get_bone_rest(si).origin.normalized()
 	var cur_t: Vector3 = (t_thigh.basis * axis_t).normalized()
@@ -153,8 +198,16 @@ func _solve_leg(s: String, lift: float, xf: Transform3D, inv: Transform3D) -> vo
 	# foot: roll the sole onto the ground normal
 	var t_foot2: Transform3D = _skel.get_bone_global_pose(fi)
 	var n_local: Vector3 = (inv.basis * _norm[s]).normalized()
-	var q_f := Quaternion(Vector3.UP, Vector3.UP.slerp(n_local, influence)).normalized()
+	var q_f := Quaternion(Vector3.UP, _tilt_from_up(n_local, influence)).normalized()
 	_skel.set_bone_global_pose(fi, Transform3D(Basis(q_f) * t_foot2.basis, t_foot2.origin))
+
+## Vector3.UP.slerp(n, w), safe for normals within float noise of UP: there
+## the rotation axis (UP x n) underflows, comes back unnormalised and Godot
+## logs "The axis Vector3 ... must be normalized" every frame.
+static func _tilt_from_up(n: Vector3, w: float) -> Vector3:
+	if n.x * n.x + n.z * n.z < 1e-12:
+		return Vector3.UP
+	return Vector3.UP.slerp(n, w)
 
 ## Distance from each ankle to the ground; used by the animation QA harness.
 func debug_ankle_gap() -> Dictionary:
@@ -177,3 +230,15 @@ func foot_world(s: String) -> Vector3:
 func ankle_world(s: String) -> Vector3:
 	if not _ok: return Vector3.ZERO
 	return _skel.global_transform * _skel.get_bone_global_pose(_b["foot." + s]).origin
+
+## v0.22: a footfall fires when the animated sole comes down to the plane the
+## character stands on (armed above 4.5 cm, fires under 2.2 cm), so the sound
+## lands with the heel instead of on a timer.
+func _step_event(s: String, ankle_w: Vector3, base_y: float) -> void:
+	var g: float = ankle_w.y - ankle_height - base_y
+	_gap[s] = g
+	if g > 0.045:
+		_armed[s] = true
+	elif g < 0.022 and _armed[s]:
+		_armed[s] = false
+		footfall.emit(s, Vector3(ankle_w.x, base_y, ankle_w.z))

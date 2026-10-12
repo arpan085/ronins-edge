@@ -13,6 +13,7 @@ enum Q {NEAR, MEDIUM, FAR, CULLED}
 var rig: AnimRig
 var foot_ik: FootIK
 var look: LookAtLayer
+var polish: LocoPolish
 var level: int = Q.NEAR
 
 var _t := 0.0
@@ -20,7 +21,8 @@ var _accum := 0.0
 var _cam: Camera3D
 var _host: Node3D
 
-func setup(host: Node3D, r: AnimRig, ik: FootIK, lk: LookAtLayer) -> void:
+func setup(host: Node3D, r: AnimRig, ik: FootIK, lk: LookAtLayer, pol: LocoPolish = null) -> void:
+	polish = pol
 	_host = host
 	rig = r
 	foot_ik = ik
@@ -52,17 +54,21 @@ func _apply() -> void:
 			rig.set_breathe(0.55)
 			if foot_ik: foot_ik.influence = 1.0
 			if look: look.influence = 1.0
+			if polish: polish.influence = 1.0
 		Q.MEDIUM:
 			rig.tree.active = true
 			rig.set_breathe(0.35)
 			if foot_ik: foot_ik.influence = 0.55
 			if look: look.influence = 0.7
+			if polish: polish.influence = 0.85
 		Q.FAR:
 			rig.tree.active = true
 			rig.set_breathe(0.0)
 			if foot_ik: foot_ik.influence = 0.0
 			if look: look.influence = 0.0
+			if polish: polish.influence = 0.0
 		Q.CULLED:
 			rig.tree.active = false
 			if foot_ik: foot_ik.influence = 0.0
 			if look: look.influence = 0.0
+			if polish: polish.influence = 0.0

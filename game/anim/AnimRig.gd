@@ -114,9 +114,11 @@ func setup(ap: AnimationPlayer, sk: Skeleton3D, character: String, anim_meta: Di
 	tree = AnimationTree.new()
 	tree.name = "AnimTree"
 	tree.tree_root = bt
-	tree.anim_player = tree.get_path_to(player)
 	tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
 	tree.active = true
+	# The path has to be resolved after the tree is in the scene. Assigning it
+	# first put "Parameter common_parent is null" in the log once per rig,
+	# because get_path_to() on a node with no tree yet cannot succeed.
 	player.get_parent().add_child(tree)
 	tree.anim_player = tree.get_path_to(player)
 	if skel != null:

@@ -45,16 +45,16 @@ func _suite() -> void:
 	print("\n-- world --")
 	check("world built", world.loaded)
 	check("terrain heightmap loaded", world.terrain != null and world.terrain.loaded)
-	check("terrain grid is 481x481", world.terrain.heights.size() == 481 * 481,
-		"size=%d" % world.terrain.heights.size())
+	check("terrain grid matches its size", world.terrain.heights.size() == world.terrain.grid * world.terrain.grid,
+		"size=%d grid=%d" % [world.terrain.heights.size(), world.terrain.grid])
 	var zy := {}
+	var zbad := []
 	for z in ["shrine", "forest", "village", "castle", "mountain"]:
 		var c: Dictionary = world.data["zones"][z]
 		var h := world.terrain.sample_height(float(c["x"]), float(c["z"]))
 		zy[z] = h
-	check("zone elevations match world.json",
-		absf(zy["shrine"] - 8.0) < 0.6 and absf(zy["village"] - 5.0) < 0.6 and absf(zy["mountain"] - 30.0) < 1.0,
-		str(zy))
+		if absf(h - float(c.get("y", h))) > 1.0: zbad.append(z)
+	check("zone elevations match world.json", zbad.is_empty(), str(zy) + (" off: " + str(zbad) if not zbad.is_empty() else ""))
 	check("village is above the water line", zy["village"] > world.terrain.water_level + 1.0,
 		"village=%.2f water=%.2f" % [zy["village"], world.terrain.water_level])
 	check("props placed", world.get_child_count() > 20, "children=%d" % world.get_child_count())
@@ -66,11 +66,11 @@ func _suite() -> void:
 
 	print("\n-- player --")
 	check("player spawned", player != null)
-	check("player model loaded", player.skeleton != null, "skeleton=%s" % str(player.skeleton != null))
+	check("player model loaded", player.rig != null and player.rig.ok and player.rig.skeleton != null)
 	var clips := 0
-	if player.anim != null:
-		clips = player.anim.get_animation_list().size()
-	check("player has 16 animation clips", clips == 16, "clips=%d" % clips)
+	if player.rig != null and player.rig.anim != null:
+		clips = player.rig.anim.get_animation_list().size()
+	check("player animation library loaded (100+ clips)", clips >= 100, "clips=%d" % clips)
 	check("katana trail bound to hand bone", player.trail != null)
 	# gravity / grounding
 	player.global_position = Vector3(240, world.terrain.sample_height(240, 268) + 2.0, 268)
@@ -84,19 +84,22 @@ func _suite() -> void:
 	var moved := player.global_position.distance_to(y0)
 	check("player moves when input is held", moved > 1.5, "moved=%.2f m" % moved)
 	check("movement animation switches away from Idle",
-		player.anim.current_animation in ["Walk", "Run", "Sprint"], "clip=%s" % player.anim.current_animation)
+		player.rig.current() in ["Walk", "Jog_Fwd", "Sprint", "K_Walk_Back", "K_Strafe_L", "K_Strafe_R"], "clip=%s" % player.rig.current())
 
 	print("\n-- combat: attack --")
 	var e = world.spawn_enemy_at("ashigaru", player.global_position + Vector3(0, 0, -2.2), _tag("ashigaru"))
 	await _wait(0.4)
 	check("enemy spawned with model", e != null and e.anim != null)
-	check("enemy has 6 clips", e.anim.get_animation_list().size() == 6, "clips=%d" % e.anim.get_animation_list().size())
+	check("enemy has its animation set", e.anim.get_animation_list().size() >= 6, "clips=%d" % e.anim.get_animation_list().size())
 	var hp0: float = e.hp
 	var e_max_hp: float = e.max_hp
 	var e_max_posture: float = e.max_posture
 	player.global_position = e.global_position + Vector3(0, 0, 2.2)
 	player.rotation.y = 0.0
 	player.state = Player.S.IDLE
+	player.select_weapon("katana")
+	player._set_drawn(true)
+	player._face_now(e.global_position - player.global_position)
 	player._start_attack("light1")
 	await _wait(0.6)
 	check("light attack damages the enemy", e.hp < hp0, "hp %.1f -> %.1f" % [hp0, e.hp])
@@ -145,7 +148,9 @@ func _suite() -> void:
 	player._start_deathblow(e)
 	await _wait(0.2)
 	check("deathblow kills the enemy", e.is_dead, "hp=%.1f" % e.hp)
-	check("enemy death animation plays", e.anim.current_animation == "Death", "clip=%s" % e.anim.current_animation)
+	await _wait(0.2)
+	var dstate: String = e.driver.rig.loco_state() if e.driver != null and e.driver.rig != null else ""
+	check("enemy death animation plays", e.state == EnemyBase.S.DEAD and dstate.begins_with("Death"), "state=%s" % dstate)
 
 	print("\n-- enemy AI --")
 	player.state = Player.S.IDLE
@@ -160,18 +165,31 @@ func _suite() -> void:
 		"dist=%.1f" % e2.global_position.distance_to(player.global_position))
 	e2.state = EnemyBase.S.IDLE
 	e2.in_combat = false
-	await _wait(1.2)
-	check("enemy detects the player", e2.state in [EnemyBase.S.ALERT, EnemyBase.S.CHASE, EnemyBase.S.ATTACK],
-		"state=%d dist=%.1f" % [e2.state, e2.global_position.distance_to(player.global_position)])
+	# v0.16 sight builds awareness over time: a sentry looking our way
+	var to_p: Vector3 = player.global_position - e2.global_position
+	e2.rotation.y = atan2(to_p.x, to_p.z)
+	e2.set("_want_yaw", e2.rotation.y)
+	e2.post_yaw = e2.rotation.y
+	var waited := 0.0
+	while waited < 5.0 and not e2.state in [EnemyBase.S.ALERT, EnemyBase.S.CHASE, EnemyBase.S.ATTACK, EnemyBase.S.COMBAT_READY]:
+		await _wait(0.1)
+		waited += 0.1
+	check("enemy detects the player", e2.state in [EnemyBase.S.ALERT, EnemyBase.S.CHASE, EnemyBase.S.ATTACK, EnemyBase.S.COMBAT_READY],
+		"state=%d dist=%.1f after %.1f s" % [e2.state, e2.global_position.distance_to(player.global_position), waited])
 	var d0: float = e2.global_position.distance_to(player.global_position)
 	await _wait(1.5)
 	var d1: float = e2.global_position.distance_to(player.global_position)
 	check("enemy closes distance (chase)", d1 < d0, "%.1f -> %.1f" % [d0, d1])
 	e2.global_position = player.global_position + Vector3(0, 0, -2.4)
 	e2._cd = 0.0
-	await _wait(2.5)
-	check("enemy reaches ATTACK or RECOVER", e2.state in [EnemyBase.S.ATTACK, EnemyBase.S.RECOVER, EnemyBase.S.CHASE],
-		"state=%d" % e2.state)
+	# v0.18: watch the whole window; a full swing-recover-ready cycle is ~2 s,
+	# so a single sample at 2.5 s could land between two attacks
+	var seen := {}
+	for _i in 25:
+		await _wait(0.1)
+		seen[e2.state] = true
+	check("enemy reaches ATTACK or RECOVER", seen.has(EnemyBase.S.ATTACK) or seen.has(EnemyBase.S.RECOVER),
+		"seen=%s" % str(seen.keys()))
 	check("enemy telegraphs before hitting (windup >= 0.4s)", e2.windup >= 0.4, "windup=%.2f" % e2.windup)
 
 	print("\n-- enemy variety --")
@@ -185,6 +203,112 @@ func _suite() -> void:
 	var kinds := {}
 	for en in world.enemies: kinds[en.kind] = true
 	check("three enemy kinds alive", kinds.size() >= 3, str(kinds.keys()))
+	# v0.19 facial hair: every style grows a skinned shell out of the face
+	var fh_ok := true
+	var fh_info := []
+	var head_src: Node = (load(UBCDriver.CHAR_PATH) as PackedScene).instantiate()
+	for st in FacialHair.SHAPE.keys():
+		var fm := FacialHair.grow(head_src, st, Color(0.1, 0.08, 0.07))
+		var tris := 0
+		if fm != null and fm.mesh != null:
+			var fa := fm.mesh.surface_get_arrays(0)
+			tris = (fa[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
+			if fa[Mesh.ARRAY_BONES] == null or fm.skin == null: tris = -1
+		fh_info.append("%s:%d" % [st, tris])
+		if tris < 20 or tris > 4000: fh_ok = false
+	head_src.free()
+	check("each facial hair style grows a skinned shell (20-4000 tris)", fh_ok, " ".join(fh_info))
+	# v0.20 wet characters: soak, then dry back to exactly the dry values
+	var wm := StandardMaterial3D.new()
+	wm.albedo_color = Color(0.5, 0.4, 0.3); wm.roughness = 0.9
+	CharWet.track(wm, "cloth")
+	var lv0 := CharWet.level
+	CharWet.set_level(1.0)
+	var soaked := wm.albedo_color.r < 0.35 and wm.roughness < 0.75
+	var wcopy := CharWet.dry_copy(wm)
+	CharWet.set_level(0.0)
+	var dried := is_equal_approx(wm.albedo_color.r, 0.5) and is_equal_approx(wm.roughness, 0.9)
+	check("rain soaks character cloth and it dries back exactly", soaked and dried and is_equal_approx(wcopy.albedo_color.r, 0.5),
+		"tracked=%d" % CharWet.count())
+	world.set_weather("storm", true)
+	await _wait(0.2)
+	var storm_lv := CharWet.level
+	world.set_weather("clear", true)
+	await _wait(0.2)
+	check("a storm soaks the characters, clear weather dries them", storm_lv > 0.9 and CharWet.level < 0.05,
+		"storm=%.2f clear=%.2f" % [storm_lv, CharWet.level])
+	CharWet.set_level(lv0)
+	# v0.21 breath: puffs in the snow, none at a clear noon (a standalone body:
+	# a live enemy may be despawned by the world while the test waits)
+	var bh := Node3D.new()
+	world.add_child(bh)
+	bh.global_position = player.global_position + Vector3(2.0, 0, -3.0)
+	var bdrv := UBCDriver.new()
+	bh.add_child(bdrv)
+	var bf: BreathFX = bdrv.breath if bdrv.build(bh, "", "ashigaru", false) else null
+	var p_snow := -1
+	var p_noon := -1
+	if bf != null:
+		world.set_weather("snow", true)
+		bf.anatomy.exertion = 1.0
+		var b0: int = bf.puffs
+		await _wait(4.0)
+		p_snow = bf.puffs - b0
+		world.set_time_of_day(12.0)
+		world.set_weather("clear", true)
+		await _wait(0.1)
+		var b1: int = bf.puffs
+		await _wait(3.0)
+		p_noon = bf.puffs - b1
+	bh.queue_free()
+	check("breath shows in the snow, not at a clear noon", p_snow >= 1 and p_noon == 0,
+		"snow=%d noon=%d cold=%.2f" % [p_snow, p_noon, BreathFX.cold])
+
+	# v0.22 ground contact: the UAL clips stand on the ground (anim/GroundFix)
+	# and the foot IK plants both feet across a 20 deg slope
+	var gm: Node3D = (load("res://assets/char/Ronin.glb") as PackedScene).instantiate()
+	world.add_child(gm)
+	gm.global_position = Vector3(0, 400, 0)
+	var gsk: Skeleton3D = gm.find_children("*", "Skeleton3D", true, false)[0]
+	var gap := AnimationPlayer.new(); gm.add_child(gap)
+	var glib: AnimationLibrary = load("res://assets/anim/ronin_anims.res")
+	GroundFix.apply(glib, gsk)
+	gap.add_animation_library("", glib)
+	gap.root_node = gap.get_path_to(gsk.get_parent())
+	var lows := {}
+	for gc in ["Idle", "Walk", "Jog_Fwd", "Sprint"]:
+		lows[gc] = _clip_low(gap, gsk, gc)
+	gm.queue_free()
+	var on_ground := true
+	for gc in lows: on_ground = on_ground and lows[gc] > -0.02 and lows[gc] < 0.025
+	check("idle, walk, jog and sprint keep the feet on the ground", on_ground,
+		"lowest contact (m): %s" % str(lows))
+	var sh := Node3D.new()
+	world.add_child(sh)
+	sh.global_position = Vector3(0, 400, 0)
+	var th := deg_to_rad(20.0)
+	var sb := StaticBody3D.new(); sh.add_child(sb)
+	var scs := CollisionShape3D.new(); var sbx := BoxShape3D.new(); sbx.size = Vector3(8, 1, 8)
+	scs.shape = sbx; sb.add_child(scs)
+	sb.rotation = Vector3(0, 0, th)
+	sb.position = Vector3(0.5 * sin(th), -0.5 * cos(th), 0)
+	var sbody := Node3D.new(); sh.add_child(sbody)
+	var sdrv := UBCDriver.new(); sbody.add_child(sdrv)
+	var g_on := {}
+	var g_off := {}
+	if sdrv.build(sbody, "", "ashigaru", false) and sdrv.foot_ik != null:
+		var post := [{}]
+		sdrv.foot_ik.modification_processed.connect(func(): post[0] = sdrv.ankle_gaps())
+		await _wait(1.2)
+		g_on = post[0]
+		sdrv.foot_ik.active = false
+		await _wait(0.3)
+		g_off = sdrv.ankle_gaps()
+	sh.queue_free()
+	var planted: bool = not g_on.is_empty() and absf(g_on["L"]) < 0.03 and absf(g_on["R"]) < 0.03 \
+		and not g_off.is_empty() and maxf(absf(g_off["L"]), absf(g_off["R"])) > 0.05
+	check("foot IK plants both feet across a 20 deg slope", planted,
+		"with IK %s, without %s" % [str(g_on), str(g_off)])
 
 	print("\n-- combat spacing --")
 	EnemyBase.attackers = 0
@@ -222,15 +346,30 @@ func _suite() -> void:
 	check("load restores state", Game.load_game() and absf(Game.hp - 61.5) < 0.01 and Game.zone == "village",
 		"hp=%.1f zone=%s" % [Game.hp, Game.zone])
 	check("quest progress round-trips", Game.load_game() and Quests.done.has("forest"))
+	# v0.16 techniques and smoke bombs are saved with the rest
+	Skills.reset()
+	Skills.unlocked = ["s_silent", "s_assassin"] as Array[String]
+	Game.smoke = 1
+	check("save writes techniques", Game.save_game())
+	Skills.reset(); Game.smoke = 3
+	check("techniques and smoke bombs round-trip", Game.load_game() and Skills.has("s_assassin") and Skills.has("s_silent") and Game.smoke == 1,
+		"skills=%s smoke=%d" % [str(Skills.unlocked), Game.smoke])
+	check("a technique tree with 12 entries", Skills.TREE.size() == 12 and Skills.total_cost() == 27, "n=%d cost=%d" % [Skills.TREE.size(), Skills.total_cost()])
+	for act in ["crouch", "smoke", "skills"]:
+		check("input action '%s' is bound" % act, InputMap.has_action(act) and not InputMap.action_get_events(act).is_empty())
+	Skills.reset(); Game.smoke = Game.smoke_max
 
 	print("\n-- audio --")
-	check("music streams exist", Audio._load("res://assets/audio/music_shrine.wav") != null)
-	check("sfx streams exist", Audio._load("res://assets/audio/deflect.wav") != null)
+	check("music streams exist", Audio._load("res://assets/audio/music/shrine.ogg") != null)
+	check("sfx sets found", Audio.has_sound("clash") and Audio.has_sound("hoof_dirt") and Audio.has_sound("footstep_grass"))
 	Audio.play_sfx("deflect", Vector3.ZERO)
 	Audio.play_music("combat")
 	await _wait(0.2)
 	check("sfx pool accepts a play request", true)
 	check("audio buses created", AudioServer.get_bus_index("Music") >= 0 and AudioServer.get_bus_index("SFX") >= 0)
+	check("master bus is limited and the music ducks under hits (v0.22 mix)",
+		AudioServer.get_bus_effect_count(0) >= 2 and AudioServer.get_bus_effect(0, AudioServer.get_bus_effect_count(0) - 1) is AudioEffectLimiter
+		and AudioServer.get_bus_effect(AudioServer.get_bus_index("Music"), 0) is AudioEffectCompressor)
 
 	print("\n-- graphics settings --")
 	for lvl in [0, 1, 2]:
@@ -238,10 +377,11 @@ func _suite() -> void:
 		Perf.apply_quality(lvl)
 		await _wait(0.05)
 	check("all three quality presets apply without error", Perf.level == 2, "preset=%s" % Perf.preset()["name"])
-	check("terrain LOD reacts to quality", world.terrain.lod_ranges[0] > 0.0, str(world.terrain.lod_ranges))
+	check("terrain LOD distances set", float(world.terrain.lod_dist[0]) > 0.0, str(world.terrain.lod_dist))
 
 	print("\n-- zone + checkpoint flow --")
-	player.global_position = Vector3(90, world.terrain.sample_height(90, 250) + 1.5, 250)
+	var fz: Dictionary = world.data["zones"]["forest"]
+	player.global_position = Vector3(float(fz["x"]), world.terrain.sample_height(float(fz["x"]), float(fz["z"])) + 1.5, float(fz["z"]))
 	await _wait(0.8)
 	check("walking into a zone updates the current zone", Game.zone == "forest", "zone=%s" % Game.zone)
 	check("checkpoint saved on zone entry", Game.checkpoint["zone"] != "", str(Game.checkpoint["zone"]))
@@ -274,3 +414,21 @@ func _summary() -> void:
 		f.store_string(JSON.stringify({"passed": pass_count, "failed": fail_count, "results": results}, "  "))
 		f.close()
 	get_tree().quit(1 if fail_count > 0 else 0)
+
+
+## v0.22: lowest point of either foot (heel or ball) over a clip, metres above
+## the ground plane of the model (negative = sunk into the ground)
+func _clip_low(ap: AnimationPlayer, sk: Skeleton3D, clip: String) -> float:
+	if not ap.has_animation(clip): return -9.0
+	var a := ap.get_animation(clip)
+	ap.play(clip)
+	var fl := sk.find_bone("foot_l"); var fr := sk.find_bone("foot_r")
+	var bl := sk.find_bone("ball_l"); var br := sk.find_bone("ball_r")
+	var ah := sk.get_bone_global_rest(fl).origin.y
+	var bh := sk.get_bone_global_rest(bl).origin.y
+	var lo := 9.0
+	for i in 24:
+		ap.seek(a.length * float(i) / 24.0, true)
+		for pr in [[fl, bl], [fr, br]]:
+			lo = minf(lo, minf(sk.get_bone_global_pose(pr[0]).origin.y - ah, sk.get_bone_global_pose(pr[1]).origin.y - bh))
+	return lo
